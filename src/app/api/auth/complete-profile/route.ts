@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { FirestoreService } from '@/lib/firestore';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,26 +12,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const updatedUser = await db.user.update({
-      where: { id: userId },
-      data: {
-        fullName,
-        email: email || null,
-        address
-      }
+    const updatedUser = await FirestoreService.updateUser(userId, {
+      fullName,
+      email: email || null,
+      address
     });
+
+    // Get the updated user data
+    const userData = await FirestoreService.getUser(userId);
 
     return NextResponse.json({
       success: true,
       data: {
         user: {
-          id: updatedUser.id,
-          phoneNumber: updatedUser.phoneNumber,
-          fullName: updatedUser.fullName,
-          email: updatedUser.email,
-          address: updatedUser.address,
-          profilePictureUrl: updatedUser.profilePictureUrl,
-          role: updatedUser.role
+          id: userData.id,
+          phoneNumber: userData.phoneNumber,
+          fullName: userData.fullName,
+          email: userData.email,
+          address: userData.address,
+          profilePictureUrl: userData.profilePictureUrl,
+          role: userData.role
         }
       }
     });

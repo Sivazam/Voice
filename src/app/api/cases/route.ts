@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DatabaseService } from '@/lib/database-service';
+import { FirestoreService } from '@/lib/firestore';
 import { CaseStatus, Gender } from '@/types';
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.json();
+    
     const {
       userId,
       patientName,
@@ -23,7 +24,9 @@ export async function POST(request: NextRequest) {
       detailedDescription,
       gpsLatitude,
       gpsLongitude,
-      capturedAddress
+      capturedAddress,
+      voiceRecordingUrl,
+      voiceRecordingDuration
     } = formData;
 
     // Validate required fields
@@ -34,8 +37,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create the case using the database service
-    const newCase = await DatabaseService.createCase({
+    // Create the case using Firestore service
+    const newCase = await FirestoreService.createCase({
       userId,
       status: CaseStatus.PENDING,
       patientName,
@@ -58,27 +61,20 @@ export async function POST(request: NextRequest) {
       voiceRecordingDuration: formData.voiceRecordingDuration || null
     });
 
-    // Create issue categories using the database service
+    // Create issue categories using Firestore service
     if (issueCategories && issueCategories.length > 0) {
       const categoryData = issueCategories.map((category: string) => ({
         caseId: newCase.id,
         category
       }));
       
-      if (process.env.DATABASE_PROVIDER === 'firestore') {
-        // Firestore would handle batch operations differently
-        await Promise.all(
-          categoryData.map(data => DatabaseService.createIssueCategory(data))
-        );
-      } else {
-        await DatabaseService.createIssueCategories(categoryData);
-      }
+      await FirestoreService.createIssueCategories(categoryData);
     }
 
     // Update user's total cases filed
-    const user = await DatabaseService.getUser(userId);
+    const user = await FirestoreService.getUser(userId);
     if (user) {
-      await DatabaseService.updateUser(userId, {
+      await FirestoreService.updateUser(userId, {
         totalCasesFiled: (user.totalCasesFiled || 0) + 1
       });
     }
@@ -110,9 +106,9 @@ export async function GET(request: NextRequest) {
     let cases;
 
     if (userId) {
-      cases = await DatabaseService.getUserCases(userId);
+      cases = await FirestoreService.getUserCases(userId);
     } else {
-      cases = await DatabaseService.getAllCases(status);
+      cases = await FirestoreService.getAllCases(status);
     }
 
     // Filter for public cases if requested

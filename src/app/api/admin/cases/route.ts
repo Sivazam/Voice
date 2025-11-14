@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { FirestoreService } from '@/lib/firestore';
 import { CaseStatus } from '@/types';
 
 export async function GET(request: NextRequest) {
@@ -7,31 +7,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
 
-    let whereClause: any = {};
-
-    if (status) {
-      whereClause.status = status;
-    }
-
-    const cases = await db.case.findMany({
-      where: whereClause,
-      include: {
-        user: {
-          select: {
-            fullName: true,
-            phoneNumber: true
-          }
-        },
-        issueCategories: true,
-        attachments: true,
-        _count: {
-          select: { attachments: true }
-        }
-      },
-      orderBy: {
-        submittedAt: 'desc'
-      }
-    });
+    const cases = await FirestoreService.getAllCases(status);
 
     return NextResponse.json({
       success: true,
@@ -60,7 +36,7 @@ export async function PATCH(request: NextRequest) {
 
     const updateData: any = {
       status,
-      reviewedAt: new Date(),
+      reviewedAt: new Date().toISOString(),
       reviewedBy
     };
 
@@ -76,20 +52,7 @@ export async function PATCH(request: NextRequest) {
       updateData.isPublic = true;
     }
 
-    const updatedCase = await db.case.update({
-      where: { id: caseId },
-      data: updateData,
-      include: {
-        user: {
-          select: {
-            fullName: true,
-            phoneNumber: true
-          }
-        },
-        issueCategories: true,
-        attachments: true
-      }
-    });
+    const updatedCase = await FirestoreService.updateCase(caseId, updateData);
 
     return NextResponse.json({
       success: true,

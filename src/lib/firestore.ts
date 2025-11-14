@@ -9,6 +9,7 @@ import {
   collection, 
   doc, 
   addDoc, 
+  setDoc,
   updateDoc, 
   deleteDoc, 
   getDoc, 
@@ -53,14 +54,53 @@ export class FirestoreService {
   // User operations
   static async createUser(userData: any) {
     try {
-      const docRef = await addDoc(collection(db, 'users'), {
+      // Use mobile number as document ID
+      const phoneNumber = userData.phoneNumber;
+      if (!phoneNumber) {
+        throw new Error('Phone number is required');
+      }
+      
+      const userRef = doc(db, 'users', phoneNumber);
+      await setDoc(userRef, {
         ...userData,
+        phoneNumber: phoneNumber,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
-      return { id: docRef.id, ...userData };
+      return { id: phoneNumber, ...userData };
     } catch (error) {
       console.error('Error creating user:', error);
+      throw error;
+    }
+  }
+
+  static async getAllUsers() {
+    try {
+      const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+      
+      const users = await Promise.all(
+        querySnapshot.docs.map(async (doc) => {
+          const userData = doc.data();
+          
+          // Get case count for each user
+          const casesQuery = query(
+            collection(db, 'cases'),
+            where('userId', '==', doc.id)
+          );
+          const casesSnapshot = await getDocs(casesQuery);
+
+          return {
+            id: doc.id,
+            ...userData,
+            totalCasesFiled: casesSnapshot.size
+          };
+        })
+      );
+
+      return users;
+    } catch (error) {
+      console.error('Error getting all users:', error);
       throw error;
     }
   }
@@ -77,10 +117,8 @@ export class FirestoreService {
 
   static async getUserByPhoneNumber(phoneNumber: string) {
     try {
-      const q = query(collection(db, 'users'), where('phoneNumber', '==', phoneNumber));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0];
+      const userDoc = await getDoc(doc(db, 'users', phoneNumber));
+      if (userDoc.exists()) {
         return { id: userDoc.id, ...userDoc.data() };
       }
       return null;
@@ -157,12 +195,14 @@ export class FirestoreService {
 
   static async getUserCases(userId: string) {
     try {
+      console.log('📥 Getting user cases for userId:', userId);
+      // Simple query by userId only, then sort client-side
       const q = query(
         collection(db, 'cases'),
-        where('userId', '==', userId),
-        orderBy('submittedAt', 'desc')
+        where('userId', '==', userId)
       );
       const querySnapshot = await getDocs(q);
+      console.log('📥 Query snapshot docs count:', querySnapshot.docs.length);
       
       const cases = await Promise.all(
         querySnapshot.docs.map(async (doc) => {
@@ -170,7 +210,7 @@ export class FirestoreService {
           
           // Get related data for each case
           const categoriesQuery = query(
-            collection(db, 'caseIssueCategories'),
+            collection(db, 'issueCategories'),
             where('caseId', '==', doc.id)
           );
           const categoriesSnapshot = await getDocs(categoriesQuery);
@@ -194,7 +234,12 @@ export class FirestoreService {
 
       return cases;
     } catch (error) {
-      console.error('Error getting user cases:', error);
+      console.error('🔥 Error getting user cases:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        code: error.code
+      });
       throw error;
     }
   }

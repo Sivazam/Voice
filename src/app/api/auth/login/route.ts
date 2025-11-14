@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { FirestoreService } from '@/lib/firestore';
 import { UserRole } from '@/types';
 
 export async function POST(request: NextRequest) {
@@ -13,27 +13,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find or create user
-    let user = await db.user.findUnique({
-      where: { phoneNumber }
-    });
+    // Find or create user in Firestore
+    let user = await FirestoreService.getUserByPhoneNumber(phoneNumber);
 
     if (!user) {
-      // Create new user
-      user = await db.user.create({
-        data: {
-          phoneNumber,
-          fullName: '', // Will be filled in profile completion
-          address: '', // Will be filled in profile completion
-          role: UserRole.USER
-        }
+      // Create new user in Firestore with mobile number as document ID
+      user = await FirestoreService.createUser({
+        phoneNumber,
+        fullName: '', // Will be filled in profile completion
+        address: '', // Will be filled in profile completion
+        role: UserRole.USER,
+        isActive: true,
+        totalCasesFiled: 0
       });
     }
 
     // Update last login
-    await db.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() }
+    await FirestoreService.updateUser(user.id, {
+      lastLoginAt: new Date().toISOString()
     });
 
     // In a real app, you would send OTP via SMS service

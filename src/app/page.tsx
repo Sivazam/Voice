@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { LoginModal } from '@/components/auth/login-modal';
 import { ProfileCompletionModal } from '@/components/auth/profile-completion-modal';
 import { ProfileSettings } from '@/components/user/profile-settings';
-import { CaseSubmissionForm } from '@/components/forms/case-submission-form';
+import { CaseSubmissionModal } from '@/components/forms/case-submission-modal';
 import { CaseTrackingDashboard } from '@/components/cases/case-tracking-dashboard';
 import { AdminDashboard } from '@/components/admin/admin-dashboard';
 import { PublicCasesBrowser } from '@/components/cases/public-cases-browser';
@@ -22,6 +22,7 @@ export default React.memo(function Home() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [showCaseForm, setShowCaseForm] = useState(false);
+  const [showPublicCases, setShowPublicCases] = useState(false);
   const [pendingUserId, setPendingUserId] = useState('');
   const [pendingPhoneNumber, setPendingPhoneNumber] = useState('');
 
@@ -74,34 +75,34 @@ export default React.memo(function Home() {
     'Lack of Transparency'
   ];
 
-  const handleLoginSuccess = (userData: UserType) => {
+  const handleLoginSuccess = React.useCallback((userData: UserType) => {
     login(userData);
-  };
+  }, [login]);
 
-  const handleProfileRequired = (userId: string, phoneNumber: string) => {
+  const handleProfileRequired = React.useCallback((userId: string, phoneNumber: string) => {
     setPendingUserId(userId);
     setPendingPhoneNumber(phoneNumber);
     setShowLoginModal(false);
     setShowProfileModal(true);
-  };
+  }, []);
 
-  const handleProfileSuccess = (userData: UserType) => {
+  const handleProfileSuccess = React.useCallback((userData: UserType) => {
     login(userData);
     setPendingUserId('');
     setPendingPhoneNumber('');
-  };
+  }, [login]);
 
-  const handleLogout = () => {
+  const handleLogout = React.useCallback(() => {
     logout();
-  };
+  }, [logout]);
 
-  const handleFileCase = () => {
+  const handleFileCase = React.useCallback(() => {
     if (isAuthenticated) {
       setShowCaseForm(true);
     } else {
       setShowLoginModal(true);
     }
-  };
+  }, [isAuthenticated]);
 
   const handleCaseSubmitSuccess = React.useCallback((caseId: string) => {
     setShowCaseForm(false);
@@ -556,13 +557,13 @@ export default React.memo(function Home() {
       />
 
       {showCaseForm && isAuthenticated && user && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <CaseSubmissionForm
-            key="case-form"
-            onClose={() => setShowCaseForm(false)}
-            onSuccess={handleCaseSubmitSuccess}
-          />
-        </div>
+        <CaseSubmissionModal
+          isOpen={showCaseForm}
+          onClose={() => setShowCaseForm(false)}
+          userId={user.id}
+          onSuccess={handleCaseSubmitSuccess}
+        />
       )}
-    );
-}
+    </div>
+  );
+});

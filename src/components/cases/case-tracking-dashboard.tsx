@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -58,15 +58,19 @@ export function CaseTrackingDashboard({ userId }: CaseTrackingDashboardProps) {
     setError('');
 
     try {
-      const response = await fetch(`/api/cases/user?userId=${userId}`);
+      console.log('📥 Fetching cases for userId:', userId);
+      const response = await fetch(`/api/cases/user-simple?userId=${userId}`);
       const data: ApiResponse<Case[]> = await response.json();
 
       if (data.success && data.data) {
+        console.log('📥 Successfully fetched cases:', data.data.length);
         setCases(data.data);
       } else {
+        console.error('❌ Failed to fetch cases:', data.error);
         setError(data.error || 'Failed to fetch cases');
       }
     } catch (error) {
+      console.error('🔥 Network error:', error);
       setError('Network error. Please try again.');
     } finally {
       setLoading(false);

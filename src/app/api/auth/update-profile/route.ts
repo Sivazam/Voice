@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { FirestoreService } from '@/lib/firestore';
 import { ApiResponse, User } from '@/types';
 
 export async function PATCH(request: NextRequest) {
@@ -31,17 +31,23 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Update user profile
-    const updatedUser = await db.user.update({
-      where: { id: currentUserId },
-      data: {
-        fullName: fullName.trim(),
-        email: email?.trim() || null,
-        address: address.trim(),
-        profilePictureUrl: profilePictureUrl || null,
-        updatedAt: new Date()
-      }
+    // Update user profile in Firestore
+    await FirestoreService.updateUser(currentUserId, {
+      fullName: fullName.trim(),
+      email: email?.trim() || null,
+      address: address.trim(),
+      profilePictureUrl: profilePictureUrl || null
     });
+
+    // Get updated user data
+    const updatedUser = await FirestoreService.getUser(currentUserId);
+
+    if (!updatedUser) {
+      return NextResponse.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      );
+    }
 
     // Return updated user data
     const userResponse: User = {

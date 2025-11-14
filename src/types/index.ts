@@ -139,7 +139,7 @@ export enum NotificationType {
 }
 
 // Form types
-export interface CaseSubmissionForm {
+export interface CaseFormData {
   // Step 1: Personal Information
   patientName: string;
   patientAge: number;

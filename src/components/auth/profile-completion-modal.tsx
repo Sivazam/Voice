@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,7 +33,7 @@ export function ProfileCompletionModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.fullName.trim() || !formData.address.trim()) {
@@ -69,12 +69,11 @@ export function ProfileCompletionModal({
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, formData.fullName, formData.email, formData.address, onSuccess, onClose]);
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = useCallback((field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    setError('');
-  };
+  }, []);
 
   if (!isOpen) return null;
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { FirestoreService } from '@/lib/firestore';
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,9 +20,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await db.user.findUnique({
-      where: { phoneNumber }
-    });
+    const user = await FirestoreService.getUserByPhoneNumber(phoneNumber);
 
     if (!user) {
       return NextResponse.json(

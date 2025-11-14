@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,7 +36,7 @@ import {
   Search,
   Filter
 } from 'lucide-react';
-import { CaseSubmissionForm, Gender, ApiResponse } from '@/types';
+import { CaseFormData, Gender, ApiResponse } from '@/types';
 
 interface CaseSubmissionFormProps {
   userId: string;
@@ -71,6 +71,37 @@ const RELATIONSHIPS = [
   'Self', 'Parent', 'Spouse', 'Child', 'Sibling', 'Friend', 'Other'
 ];
 
+const INITIAL_FORM_DATA: CaseFormData = {
+  // Step 1: Personal Information
+  patientName: '',
+  patientAge: 0,
+  patientGender: Gender.MALE,
+  relationshipToPatient: 'Self',
+  
+  // Step 2: Hospital Information
+  hospitalName: '',
+  hospitalAddress: '',
+  hospitalState: '',
+  hospitalRegistrationNo: '',
+  department: '',
+  
+  // Step 3: Treatment Timeline
+  admissionDate: new Date(),
+  isDischarged: false,
+  dischargeDate: undefined,
+  
+  // Step 4: Complaint Details
+  issueCategories: [],
+  detailedDescription: '',
+  voiceRecording: undefined,
+  
+  // Step 5: Location & Evidence
+  gpsLatitude: undefined,
+  gpsLongitude: undefined,
+  capturedAddress: '',
+  attachments: []
+};
+
 export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userId, onSuccess, onCancel }: CaseSubmissionFormProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -89,44 +120,14 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [formData, setFormData] = useState<CaseSubmissionForm>({
-    // Step 1: Personal Information
-    patientName: '',
-    patientAge: 0,
-    patientGender: Gender.MALE,
-    relationshipToPatient: 'Self',
-    
-    // Step 2: Hospital Information
-    hospitalName: '',
-    hospitalAddress: '',
-    hospitalState: '',
-    hospitalRegistrationNo: '',
-    department: '',
-    
-    // Step 3: Treatment Timeline
-    admissionDate: new Date(),
-    isDischarged: false,
-    dischargeDate: undefined,
-    
-    // Step 4: Complaint Details
-    issueCategories: [],
-    detailedDescription: '',
-    voiceRecording: undefined,
-    
-    // Step 5: Location & Evidence
-    gpsLatitude: undefined,
-    gpsLongitude: undefined,
-    capturedAddress: '',
-    attachments: []
-  });
+  const [formData, setFormData] = useState<CaseFormData>(INITIAL_FORM_DATA);
 
   const totalSteps = 5;
   const progressPercentage = (currentStep / totalSteps) * 100;
 
-  const updateFormData = (field: keyof CaseSubmissionForm, value: any) => {
+  const updateFormData = useCallback((field: keyof CaseFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    setError('');
-  };
+  }, []);
 
   // Calculate treatment duration whenever dates change
   const calculateTreatmentDuration = () => {
@@ -155,7 +156,7 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
     });
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const validFiles = files.filter(file => {
       const maxSize = 50 * 1024 * 1024; // 50MB
@@ -168,14 +169,14 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
     }
 
     setUploadedFiles(prev => [...prev, ...validFiles]);
-    updateFormData('attachments', [...formData.attachments, ...validFiles]);
-  };
+    updateFormData('attachments', [...(formData.attachments || []), ...validFiles]);
+  }, [formData.attachments, updateFormData]);
 
-  const removeFile = (index: number) => {
+  const removeFile = useCallback((index: number) => {
     const newFiles = uploadedFiles.filter((_, i) => i !== index);
     setUploadedFiles(newFiles);
     updateFormData('attachments', newFiles);
-  };
+  }, [uploadedFiles, updateFormData]);
 
   const getCurrentLocation = () => {
     if (navigator.geolocation) {
@@ -306,7 +307,7 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
         URL.revokeObjectURL(audioUrl);
       }
     };
-  }, [audioUrl]);
+  }, []);
 
   const validateCurrentStep = () => {
     switch (currentStep) {
@@ -353,18 +354,18 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
     return true;
   };
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (!validateCurrentStep()) return;
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
-  };
+  }, [currentStep, validateCurrentStep]);
 
-  const handlePrevious = () => {
+  const handlePrevious = useCallback(() => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
-  };
+  }, [currentStep]);
 
   const handleSubmit = async () => {
     if (!validateCurrentStep()) return;
@@ -973,4 +974,4 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
       </Card>
     </div>
   );
-}
+});
