@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FirestoreService } from '@/lib/firestore';
+import { User } from '@/types';
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await FirestoreService.getUserByPhoneNumber(phoneNumber);
+    const user = await FirestoreService.getUserByPhoneNumber(phoneNumber) as User | null;
 
     if (!user) {
       return NextResponse.json(

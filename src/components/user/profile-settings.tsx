@@ -63,7 +63,7 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
+          userId: user?.id || '',
           fullName: formData.fullName.trim(),
           email: formData.email.trim() || null,
           address: formData.address.trim(),
@@ -145,7 +145,7 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
                   </Avatar>
                   <div>
                     <h3 className="text-lg font-semibold">{user.fullName}</h3>
-                    <Badge variant={user.role === 'SUPERADMIN' ? 'bg-purple-100 text-purple-800' : user.role === 'ADMIN' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}>
+                    <Badge className={user.role === 'SUPERADMIN' ? 'bg-purple-100 text-purple-800' : user.role === 'ADMIN' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}>
                       {user.role === 'SUPERADMIN' ? 'Super Admin' : user.role === 'ADMIN' ? 'Admin' : 'User'}
                     </Badge>
                   </div>

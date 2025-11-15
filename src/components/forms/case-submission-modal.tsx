@@ -148,11 +148,14 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
                formData.detailedDescription.length >= 100 && 
                recordedAudio;
       case 5:
-        return true; // Location and evidence are optional
+        // Documents and GPS are now compulsory
+        return uploadedFiles.length > 0 && 
+               formData.gpsLatitude && 
+               formData.gpsLongitude;
       default:
         return false;
     }
-  }, [currentStep, formData, recordedAudio]);
+  }, [currentStep, formData, recordedAudio, uploadedFiles]);
 
   // Optimized file upload handler
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -328,25 +331,57 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
 
   // Optimized form submission
   const handleSubmit = useCallback(async () => {
-    if (!validateCurrentStep()) return;
+    console.log('🚀 Modal handleSubmit called');
+    
+    // Double-check validation before submission
+    if (!validateCurrentStep()) {
+      console.log('❌ Modal handleSubmit: validateCurrentStep failed');
+      return;
+    }
+    
+    // Additional check for Step 5 requirements
+    if (currentStep === 5) {
+      const hasDocuments = uploadedFiles.length > 0;
+      const hasGPS = formData.gpsLatitude && formData.gpsLongitude;
+      
+      console.log('🔍 Modal handleSubmit Step 5 check:', {
+        hasDocuments,
+        hasGPS,
+        uploadedFilesCount: uploadedFiles.length,
+        gpsLat: formData.gpsLatitude,
+        gpsLng: formData.gpsLongitude
+      });
+      
+      if (!hasDocuments) {
+        setError('Please upload at least one document before submitting');
+        return;
+      }
+      
+      if (!hasGPS) {
+        setError('Please provide GPS location before submitting');
+        return;
+      }
+    }
 
     setLoading(true);
     setError('');
 
     try {
-      let voiceRecordingUrl = null;
-      let voiceRecordingDuration = null;
+      let voiceRecordingUrl: string | null = null;
+      let voiceRecordingDuration: number | null = null;
+      let uploadedAttachments: {fileName: string, fileUrl: string, fileType: string, fileSize: number, storagePath?: string}[] = [];
 
+      // Upload voice recording first
       if (recordedAudio) {
         try {
           // Create FormData for file upload
-          const formData = new FormData();
-          formData.append('file', recordedAudio);
-          formData.append('caseId', 'temp-case-id');
+          const audioFormData = new FormData();
+          audioFormData.append('file', recordedAudio);
+          audioFormData.append('caseId', 'temp-case-id');
           
           const uploadResult = await fetch('/api/upload', {
             method: 'POST',
-            body: formData // Don't set Content-Type header for FormData
+            body: audioFormData // Don't set Content-Type header for FormData
           });
 
           const uploadData = await uploadResult.json();
@@ -368,6 +403,43 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
         }
       }
 
+      // Upload documents
+      if (uploadedFiles.length > 0) {
+        console.log('📤 Starting document upload:', uploadedFiles.length, 'files');
+        
+        for (const file of uploadedFiles) {
+          try {
+            const docFormData = new FormData();
+            docFormData.append('file', file);
+            docFormData.append('caseId', 'temp-case-id');
+            
+            const docUploadResult = await fetch('/api/upload', {
+              method: 'POST',
+              body: docFormData
+            });
+
+            const docUploadData = await docUploadResult.json();
+            
+            if (docUploadData.success) {
+              uploadedAttachments.push({
+                fileName: file.name,
+                fileUrl: docUploadData.data.fileUrl,
+                fileType: file.type,
+                fileSize: file.size,
+                storagePath: docUploadData.data.storagePath || null
+              });
+              console.log('✅ Document uploaded successfully:', file.name);
+            } else {
+              console.error('Document upload failed:', file.name, docUploadData.error);
+            }
+          } catch (error) {
+            console.error('Error uploading document:', file.name, error);
+          }
+        }
+        
+        console.log('📊 Document upload completed:', uploadedAttachments.length, 'of', uploadedFiles.length);
+      }
+
       const caseResponse = await fetch('/api/cases', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -377,7 +449,8 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
           admissionDate: formData.admissionDate.toISOString(),
           dischargeDate: formData.dischargeDate?.toISOString(),
           voiceRecordingUrl,
-          voiceRecordingDuration
+          voiceRecordingDuration,
+          attachments: uploadedAttachments // Send uploaded documents
         })
       });
 
@@ -393,7 +466,7 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
     } finally {
       setLoading(false);
     }
-  }, [userId, formData, recordedAudio, recordingTime, validateCurrentStep, onSuccess]);
+  }, [userId, formData, recordedAudio, recordingTime, validateCurrentStep, onSuccess, uploadedFiles]);
 
   // Simple utility functions
   const formatDuration = (seconds: number) => {
@@ -774,7 +847,7 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
                 5
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mt-3">Location & Evidence</h3>
-              <p className="text-gray-600">Optional: Add location and supporting documents</p>
+              <p className="text-red-600 font-medium">Both location and documents are REQUIRED to submit your case</p>
             </div>
             
             <div className="space-y-2">
@@ -792,11 +865,11 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
                   type="button"
                   onClick={getCurrentLocation}
                   variant="outline"
-                  className="px-4 py-2 h-auto whitespace-nowrap w-full sm:w-auto bg-green-600 text-white hover:bg-green-700"
-                  title="Capture GPS Location"
+                  className="px-4 py-2 h-auto whitespace-nowrap w-full sm:w-auto bg-red-600 text-white hover:bg-red-700"
+                  title="Capture GPS Location (Required)"
                 >
                   <MapPin className="h-4 w-4 mr-2" />
-                  GPS Capture
+                  Capture GPS Location *
                 </Button>
               </div>
               {formData.gpsLatitude && formData.gpsLongitude && (
@@ -807,7 +880,7 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
             </div>
               
             <div className="space-y-2">
-              <Label htmlFor="fileUpload" className="text-sm font-medium">Upload Documents (Optional)</Label>
+              <Label htmlFor="fileUpload" className="text-sm font-medium">Upload Documents <span className="text-red-500">*</span> (Required)</Label>
               <div 
                 className="border-2 border-dashed border-blue-300 bg-blue-50 rounded-lg p-4 sm:p-6 cursor-pointer hover:border-blue-500 hover:bg-blue-100 transition-colors"
                 onClick={() => fileInputRef.current?.click()}
@@ -932,7 +1005,7 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
             
             <Button
               onClick={currentStep === totalSteps ? handleSubmit : handleNext}
-              disabled={currentStep === totalSteps ? loading : !validateCurrentStep()}
+              disabled={loading || !validateCurrentStep()}
               className="flex items-center"
             >
               {currentStep === totalSteps ? (

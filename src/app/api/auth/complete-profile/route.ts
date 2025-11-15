@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FirestoreService } from '@/lib/firestore';
+import { User } from '@/types';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,7 +20,14 @@ export async function POST(request: NextRequest) {
     });
 
     // Get the updated user data
-    const userData = await FirestoreService.getUser(userId);
+    const userData = await FirestoreService.getUser(userId) as User | null;
+
+    if (!userData) {
+      return NextResponse.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json({
       success: true,

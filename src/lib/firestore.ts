@@ -1,4 +1,5 @@
 // Firestore Configuration - Firebase Integration
+// Fixed variable naming conflicts in map functions
 import { 
   initializeApp, 
   getApps, 
@@ -184,8 +185,8 @@ export class FirestoreService {
         id: caseDoc.id,
         ...caseData,
         user: userDoc.exists() ? { id: userDoc.id, ...userDoc.data() } : null,
-        issueCategories: categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })),
-        attachments: attachmentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        issueCategories: categoriesSnapshot.docs.map(catDoc => ({ id: catDoc.id, ...catDoc.data() })),
+        attachments: attachmentsSnapshot.docs.map(attDoc => ({ id: attDoc.id, ...attDoc.data() }))
       };
     } catch (error) {
       console.error('Error getting case:', error);
@@ -205,23 +206,23 @@ export class FirestoreService {
       console.log('📥 Query snapshot docs count:', querySnapshot.docs.length);
       
       const cases = await Promise.all(
-        querySnapshot.docs.map(async (doc) => {
-          const caseData = doc.data();
+        querySnapshot.docs.map(async (docSnapshot) => {
+          const caseData = docSnapshot.data();
           
           // Get related data for each case
           const categoriesQuery = query(
-            collection(db, 'issueCategories'),
-            where('caseId', '==', doc.id)
+            collection(db, 'caseIssueCategories'),
+            where('caseId', '==', docSnapshot.id)
           );
           const categoriesSnapshot = await getDocs(categoriesQuery);
           const attachmentsQuery = query(
             collection(db, 'attachments'),
-            where('caseId', '==', doc.id)
+            where('caseId', '==', docSnapshot.id)
           );
           const attachmentsSnapshot = await getDocs(attachmentsQuery);
 
           return {
-            id: doc.id,
+            id: docSnapshot.id,
             ...caseData,
             issueCategories: categoriesSnapshot.docs.map(cat => ({ id: cat.id, ...cat.data() })),
             attachments: attachmentsSnapshot.docs.map(att => ({ id: att.id, ...att.data() })),
@@ -236,9 +237,9 @@ export class FirestoreService {
     } catch (error) {
       console.error('🔥 Error getting user cases:', error);
       console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        code: error.code
+        message: (error as Error).message || 'Unknown error',
+        stack: (error as Error).stack || 'No stack available',
+        code: (error as any).code || 'Unknown code'
       });
       throw error;
     }
@@ -253,24 +254,24 @@ export class FirestoreService {
       const querySnapshot = await getDocs(q);
       
       const cases = await Promise.all(
-        querySnapshot.docs.map(async (doc) => {
-          const caseData = doc.data();
+        querySnapshot.docs.map(async (docSnapshot) => {
+          const caseData = docSnapshot.data();
           
           // Get related data
           const userDoc = await getDoc(doc(db, 'users', caseData.userId));
           const categoriesQuery = query(
             collection(db, 'caseIssueCategories'),
-            where('caseId', '==', doc.id)
+            where('caseId', '==', docSnapshot.id)
           );
           const categoriesSnapshot = await getDocs(categoriesQuery);
           const attachmentsQuery = query(
             collection(db, 'attachments'),
-            where('caseId', '==', doc.id)
+            where('caseId', '==', docSnapshot.id)
           );
           const attachmentsSnapshot = await getDocs(attachmentsQuery);
 
           return {
-            id: doc.id,
+            id: docSnapshot.id,
             ...caseData,
             user: userDoc.exists() ? { 
               id: userDoc.id, 
@@ -363,7 +364,24 @@ export class FirestoreService {
   // File upload to Firebase Storage
   static async uploadFile(file: File, caseId: string) {
     try {
-      const storageRef = ref(storage, `cases/${caseId}/${Date.now()}_${file.name}`);
+      // Create a better organized folder structure
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      
+      // Determine file type folder
+      let fileTypeFolder = 'documents';
+      if (file.type.startsWith('image/')) {
+        fileTypeFolder = 'images';
+      } else if (file.type.startsWith('audio/')) {
+        fileTypeFolder = 'audio';
+      } else if (file.type === 'application/pdf') {
+        fileTypeFolder = 'pdfs';
+      }
+      
+      // Structure: cases/year/month/day/caseId/fileTypeFolder/timestamp_filename
+      const storageRef = ref(storage, `cases/${year}/${month}/${day}/${caseId}/${fileTypeFolder}/${Date.now()}_${file.name}`);
       const snapshot = await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(snapshot.ref);
       
@@ -372,10 +390,40 @@ export class FirestoreService {
         fileUrl: downloadURL,
         fileType: file.type,
         fileSize: file.size,
-        uploadedAt: new Date().toISOString()
+        uploadedAt: new Date().toISOString(),
+        storagePath: storageRef.fullPath
       };
     } catch (error) {
       console.error('Error uploading file:', error);
+      throw error;
+    }
+  }
+
+  // Utility function to move files from temp case ID to real case ID
+  static async moveFilesFromTempCase(tempCaseId: string, realCaseId: string) {
+    try {
+      // This would require Firebase Storage admin SDK to move/copy files
+      // For now, files will stay in temp folders but be associated with real case ID in Firestore
+      console.log(`Files from temp case ${tempCaseId} are now associated with case ${realCaseId}`);
+      return { success: true };
+    } catch (error) {
+      console.error('Error moving files from temp case:', error);
+      throw error;
+    }
+  }
+
+  // Get storage statistics for monitoring
+  static async getStorageStats() {
+    try {
+      // This would require Firebase Storage admin SDK
+      // For now, return placeholder data
+      return {
+        totalFiles: 0,
+        totalSize: 0,
+        caseFolders: 0
+      };
+    } catch (error) {
+      console.error('Error getting storage stats:', error);
       throw error;
     }
   }

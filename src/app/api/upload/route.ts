@@ -1,12 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { FirestoreService } from '@/lib/firestore';
-import { ApiResponse } from '@/types';
+import { FileUploadService } from '@/lib/attachment-service';
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if content type is multipart/form-data
+    const contentType = request.headers.get('content-type');
+    if (!contentType || !contentType.includes('multipart/form-data')) {
+      return NextResponse.json(
+        { success: false, error: 'Content-Type must be multipart/form-data' },
+        { status: 400 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const caseId = formData.get('caseId') as string;
+
+    console.log('📥 Upload API request:', {
+      fileName: file?.name,
+      fileSize: file?.size,
+      fileType: file?.type,
+      caseId
+    });
 
     if (!file) {
       return NextResponse.json(
@@ -17,13 +32,13 @@ export async function POST(request: NextRequest) {
 
     if (!caseId) {
       return NextResponse.json(
-        { success: false, error: 'Case ID is required' },
+        { success: false, error: 'No case ID provided' },
         { status: 400 }
       );
     }
 
     // Validate file size (50MB max)
-    const maxSize = 50 * 1024 * 1024; // 50MB
+    const maxSize = 50 * 1024 * 1024;
     if (file.size > maxSize) {
       return NextResponse.json(
         { success: false, error: 'File size exceeds 50MB limit' },
@@ -32,59 +47,44 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    const allowedTypes = [
-      'image/jpeg',
-      'image/png',
-      'image/jpg',
-      'application/pdf',
-      'audio/webm',
-      'audio/wav',
-      'audio/mp3',
-      'audio/mpeg'
-    ];
-
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf', 'audio/webm', 'audio/ogg', 'audio/wav'];
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { success: false, error: 'Invalid file type. Only images, PDFs, and audio files are allowed' },
+        { success: false, error: 'File type not allowed' },
         { status: 400 }
       );
     }
 
-    // Upload to Firebase Storage
-    try {
-      const uploadResult = await FirestoreService.uploadFile(file, caseId);
-      
-      // Create attachment record in Firestore
-      const attachment = await FirestoreService.createAttachment({
-        caseId,
+    // Upload file using FileUploadService
+    const uploadResult = await FileUploadService.uploadFile(file, caseId);
+
+    if (uploadResult) {
+      console.log('✅ Upload successful:', {
         fileName: uploadResult.fileName,
         fileUrl: uploadResult.fileUrl,
-        fileType: uploadResult.fileType,
-        fileSize: uploadResult.fileSize,
-        uploadedAt: uploadResult.uploadedAt
+        storagePath: uploadResult.storagePath
       });
 
       return NextResponse.json({
         success: true,
         data: {
-          attachmentId: attachment.id,
           fileName: uploadResult.fileName,
           fileUrl: uploadResult.fileUrl,
           fileType: uploadResult.fileType,
-          fileSize: uploadResult.fileSize
+          fileSize: uploadResult.fileSize,
+          storagePath: uploadResult.storagePath
         }
       });
-
-    } catch (error) {
-      console.error('File upload error:', error);
+    } else {
+      console.error('❌ Upload failed');
       return NextResponse.json(
-        { success: false, error: 'Failed to upload file to Firebase Storage' },
+        { success: false, error: 'Upload failed' },
         { status: 500 }
       );
     }
 
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('❌ Upload API error:', error);
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

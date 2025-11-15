@@ -56,7 +56,7 @@ export function UserManagement({ superAdminId }: UserManagementProps) {
   const [roleFilter, setRoleFilter] = useState<UserRole | 'ALL'>('ALL');
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [showRoleDialog, setShowRoleDialog] = useState(false);
-  const [newRole, setNewRole] = useState<UserRole>('USER');
+  const [newRole, setNewRole] = useState<UserRole>('USER' as UserRole);
   const [processingAction, setProcessingAction] = useState(false);
 
   useEffect(() => {

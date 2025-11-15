@@ -25,6 +25,7 @@ export default React.memo(function Home() {
   const [showPublicCases, setShowPublicCases] = useState(false);
   const [pendingUserId, setPendingUserId] = useState('');
   const [pendingPhoneNumber, setPendingPhoneNumber] = useState('');
+  const [refreshTrigger, setRefreshTrigger] = useState(0); // Add refresh trigger
 
   const { user, isAuthenticated, login, logout } = useAuthStore();
 
@@ -106,10 +107,12 @@ export default React.memo(function Home() {
 
   const handleCaseSubmitSuccess = React.useCallback((caseId: string) => {
     setShowCaseForm(false);
+    // Trigger refresh to update case list
+    setRefreshTrigger(prev => prev + 1);
     // In a real app, you might show a success message or redirect to case details
     // For now, we'll just log it
     console.log(`Case submitted successfully! Case ID: ${caseId}`);
-  }, []);
+  }, [refreshTrigger]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
@@ -274,7 +277,7 @@ export default React.memo(function Home() {
               </Button>
             </div>
             
-            {isAuthenticated && (
+            {isAuthenticated && user && (
               <div className="bg-green-50 border border-green-200 rounded-xl p-6 mb-8">
                 <div className="flex items-center justify-center">
                   <CheckCircle className="h-6 w-6 text-green-600 mr-3" />
@@ -349,7 +352,7 @@ export default React.memo(function Home() {
             </Button>
           </div>
 
-          <CaseTrackingDashboard userId={user.id} />
+          <CaseTrackingDashboard userId={user.id} refreshTrigger={refreshTrigger} />
         </section>
       )}
 

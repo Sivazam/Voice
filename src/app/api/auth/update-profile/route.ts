@@ -40,7 +40,7 @@ export async function PATCH(request: NextRequest) {
     });
 
     // Get updated user data
-    const updatedUser = await FirestoreService.getUser(currentUserId);
+    const updatedUser = await FirestoreService.getUser(currentUserId) as User | null;
 
     if (!updatedUser) {
       return NextResponse.json(

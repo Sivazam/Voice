@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { AttachmentService } from '@/lib/attachment-service';
 import { FirestoreService } from '@/lib/firestore';
-import { CaseStatus, Gender } from '@/types';
+import { CaseStatus, Gender, User } from '@/types';
+
+// Fixed attachment validation and error handling
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.json();
+    
+    console.log('📥 Received case submission data:', formData);
+    console.log('📥 Form data keys:', Object.keys(formData));
+    console.log('📥 Attachments field:', formData.attachments);
+    console.log('📥 Attachments type:', typeof formData.attachments);
+    console.log('📥 Attachments length:', formData.attachments?.length);
     
     const {
       userId,
@@ -26,13 +35,36 @@ export async function POST(request: NextRequest) {
       gpsLongitude,
       capturedAddress,
       voiceRecordingUrl,
-      voiceRecordingDuration
+      voiceRecordingDuration,
+      attachments,
+      tempCaseId
     } = formData;
 
     // Validate required fields
     if (!userId || !patientName || !patientAge || !patientGender || !hospitalName || !hospitalAddress || !hospitalState || !department || !admissionDate || !detailedDescription) {
+      console.error('❌ Missing required fields:', {
+        userId: !!userId,
+        patientName: !!patientName,
+        patientAge: !!patientAge,
+        patientGender: !!patientGender,
+        hospitalName: !!hospitalName,
+        hospitalAddress: !!hospitalAddress,
+        hospitalState: !!hospitalState,
+        department: !!department,
+        admissionDate: !!admissionDate,
+        detailedDescription: !!detailedDescription
+      });
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Validate relationshipToPatient specifically
+    if (!relationshipToPatient) {
+      console.error('❌ Missing relationshipToPatient');
+      return NextResponse.json(
+        { success: false, error: 'Relationship to patient is required' },
         { status: 400 }
       );
     }
@@ -71,8 +103,42 @@ export async function POST(request: NextRequest) {
       await FirestoreService.createIssueCategories(categoryData);
     }
 
+    // Create attachment records if files were uploaded
+    if (attachments && attachments.length > 0) {
+      console.log('📤 Creating attachment records:', attachments.length);
+      
+      for (const attachment of attachments) {
+        console.log('📤 Processing attachment:', attachment);
+        
+        // Validate attachment data before creating record
+        if (!attachment || !attachment.fileName || !attachment.fileUrl) {
+          console.error('❌ Invalid attachment data:', attachment);
+          continue; // Skip this attachment
+        }
+        
+        try {
+          const attachmentRecord = await AttachmentService.createAttachment({
+            caseId: newCase.id,
+            fileName: attachment.fileName,
+            fileUrl: attachment.fileUrl,
+            fileType: attachment.fileType,
+            fileSize: attachment.fileSize,
+            storagePath: attachment.storagePath || null
+          });
+          console.log('✅ Attachment record created successfully:', {
+            fileName: attachment.fileName,
+            id: attachmentRecord.id,
+            storagePath: attachment.storagePath
+          });
+        } catch (error) {
+          console.error('❌ Error creating attachment record:', error);
+          // Continue with other attachments instead of failing the whole case
+        }
+      }
+    }
+
     // Update user's total cases filed
-    const user = await FirestoreService.getUser(userId);
+    const user = await FirestoreService.getUser(userId) as User | null;
     if (user) {
       await FirestoreService.updateUser(userId, {
         totalCasesFiled: (user.totalCasesFiled || 0) + 1
@@ -83,7 +149,8 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         caseId: newCase.id,
-        message: 'Case submitted successfully'
+        message: 'Case submitted successfully',
+        attachments: attachments || [] // Include attachments in response
       }
     });
 
@@ -108,7 +175,7 @@ export async function GET(request: NextRequest) {
     if (userId) {
       cases = await FirestoreService.getUserCases(userId);
     } else {
-      cases = await FirestoreService.getAllCases(status);
+      cases = await FirestoreService.getAllCases(status || undefined);
     }
 
     // Filter for public cases if requested

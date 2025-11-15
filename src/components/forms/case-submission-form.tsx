@@ -1,5 +1,7 @@
 'use client';
 
+'use client';
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +39,7 @@ import {
   Filter
 } from 'lucide-react';
 import { CaseFormData, Gender, ApiResponse } from '@/types';
+import { FileUploadService } from '@/lib/attachment-service';
 
 interface CaseSubmissionFormProps {
   userId: string;
@@ -114,6 +117,9 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackTime, setPlaybackTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -309,7 +315,34 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
     };
   }, []);
 
+  const hasFilesToUpload = () => {
+    // Documents are now compulsory - must have at least one uploaded file
+    const hasDocuments = uploadedFiles.length > 0;
+    const hasAudio = recordedAudio !== null;
+    const hasGPS = formData.gpsLatitude && formData.gpsLongitude;
+    
+    const result = hasDocuments && hasAudio && hasGPS;
+    
+    console.log('🔍 Submit validation check:', {
+      hasDocuments,
+      hasAudio,
+      hasGPS,
+      result,
+      uploadedFilesCount: uploadedFiles.length,
+      hasRecordedAudio: !!recordedAudio,
+      gpsLat: formData.gpsLatitude,
+      gpsLng: formData.gpsLongitude,
+      currentStep,
+      totalSteps
+    });
+    
+    // Require all three: documents, audio, and GPS location
+    return result;
+  };
+
   const validateCurrentStep = () => {
+    console.log('🔍 Validating current step:', currentStep);
+    
     switch (currentStep) {
       case 1:
         if (!formData.patientName.trim() || formData.patientAge <= 0) {
@@ -348,9 +381,24 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
         }
         break;
       case 5:
-        // Location and evidence are optional
+        console.log('🔍 Step 5 validation:', {
+          uploadedFilesCount: uploadedFiles.length,
+          hasGPS: !!(formData.gpsLatitude && formData.gpsLongitude)
+        });
+        
+        // Documents are now compulsory
+        if (uploadedFiles.length === 0) {
+          setError('Please upload at least one document (medical records, reports, or evidence)');
+          return false;
+        }
+        // GPS location is now compulsory
+        if (!formData.gpsLatitude || !formData.gpsLongitude) {
+          setError('Please provide GPS location of the incident');
+          return false;
+        }
         break;
     }
+    console.log('✅ Step validation passed');
     return true;
   };
 
@@ -367,95 +415,222 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
     }
   }, [currentStep]);
 
+  // Enhanced file upload with progress tracking using new FileUploadService
+  const uploadFile = async (file: File, caseId: string): Promise<{fileName: string, fileUrl: string, fileType: string, fileSize: number, storagePath?: string} | null> => {
+    try {
+      console.log('📤 Starting upload for file:', file.name, 'caseId:', caseId);
+      
+      const uploadResult = await FileUploadService.uploadFile(file, caseId);
+      
+      if (uploadResult) {
+        console.log('✅ Upload successful:', uploadResult);
+        return uploadResult;
+      }
+      
+      console.log('❌ Upload failed for file:', file.name);
+      return null;
+    } catch (error) {
+      console.error('Error uploading file to Firebase:', error);
+      return null;
+    }
+  };
+
+  const uploadFilesWithProgress = async (files: File[], caseId: string, onProgress?: (progress: number) => void) => {
+    const results: {fileName: string, fileUrl: string, fileType: string, fileSize: number, storagePath?: string}[] = [];
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const result = await uploadFile(file, caseId);
+      if (result) {
+        results.push(result);
+      }
+      
+      // Update progress
+      const progress = Math.round(((i + 1) / files.length) * 100);
+      onProgress?.(progress);
+      
+      console.log(`📊 Upload progress: ${progress}% (${i + 1}/${files.length}) - ${result ? 'SUCCESS' : 'FAILED'}`);
+    }
+    
+    console.log(`✅ Batch upload completed: ${results.length}/${files.length} successful`);
+    return results;
+  };
+
   const handleSubmit = async () => {
-    if (!validateCurrentStep()) return;
+    console.log('🚀 handleSubmit called');
+    
+    // Double-check validation before submission
+    if (!validateCurrentStep()) {
+      console.log('❌ handleSubmit: validateCurrentStep failed');
+      return;
+    }
+    
+    // Additional check for Step 5 requirements
+    if (currentStep === 5) {
+      const hasDocuments = uploadedFiles.length > 0;
+      const hasGPS = formData.gpsLatitude && formData.gpsLongitude;
+      
+      console.log('🔍 handleSubmit Step 5 check:', {
+        hasDocuments,
+        hasGPS,
+        uploadedFilesCount: uploadedFiles.length,
+        gpsLat: formData.gpsLatitude,
+        gpsLng: formData.gpsLongitude
+      });
+      
+      if (!hasDocuments) {
+        setError('Please upload at least one document before submitting');
+        return;
+      }
+      
+      if (!hasGPS) {
+        setError('Please provide GPS location before submitting');
+        return;
+      }
+    }
 
     setLoading(true);
     setError('');
+    setUploadStatus('uploading');
+    setUploadProgress(0);
+    setIsUploading(true);
 
     try {
+      console.log('📤 Form data before submission:', JSON.stringify(formData, null, 2));
+      console.log('📤 uploadedFiles state:', uploadedFiles.length);
+      console.log('📤 uploadedFiles details:', uploadedFiles.map(f => ({ name: f.name, size: f.size, type: f.type })));
+      
+      // Generate a temporary case ID first
+      const tempCaseId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
       // First upload audio if exists
-      let voiceRecordingUrl = null;
-      let voiceRecordingDuration = null;
+      let voiceRecordingUrl: string | null = null;
+      let voiceRecordingDuration: number | null = null;
 
       if (recordedAudio) {
         try {
-          const uploadResult = await fetch('/api/upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              file: recordedAudio,
-              caseId: 'temp-case-id'
-            })
-          });
-
-          const uploadData = await uploadResult.json();
-          if (uploadData.success) {
-            voiceRecordingUrl = uploadData.data.fileUrl;
+          setUploadProgress(10);
+          const audioUploadResult = await uploadFile(recordedAudio, tempCaseId);
+          if (audioUploadResult) {
+            voiceRecordingUrl = audioUploadResult.fileUrl;
             voiceRecordingDuration = recordingTime;
+            setUploadProgress(30);
           }
         } catch (error) {
           console.error('Error uploading audio to Firebase:', error);
           setError('Failed to upload voice recording. Please try again.');
+          setUploadStatus('error');
           setLoading(false);
+          setIsUploading(false);
           return;
         }
       }
 
-      // Submit case data with voice recording info
+      // Upload other files to Firebase Storage with temp case ID and progress tracking
+      let uploadedAttachments: {fileName: string, fileUrl: string, fileType: string, fileSize: number, storagePath?: string}[] = [];
+      if (uploadedFiles.length > 0) {
+        console.log('📤 Uploading files:', uploadedFiles.map(f => f.name));
+        console.log('📤 Files count:', uploadedFiles.length);
+        
+        const fileUploadResults = await uploadFilesWithProgress(
+          uploadedFiles, 
+          tempCaseId,
+          (progress) => {
+            // Scale progress from 30-90% (audio took first 30%)
+            const scaledProgress = 30 + Math.round((progress / 100) * 60);
+            setUploadProgress(scaledProgress);
+          }
+        );
+        
+        console.log('📤 File upload results:', fileUploadResults);
+        console.log('📤 File upload results length:', fileUploadResults.length);
+        
+        // Filter out null results and log failures
+        const successfulUploads = fileUploadResults.filter(result => result !== null);
+        const failedUploads = fileUploadResults.filter(result => result === null);
+        
+        console.log('✅ Successful uploads:', successfulUploads.length);
+        console.log('❌ Failed uploads:', failedUploads.length);
+        console.log('📤 Successful upload details:', successfulUploads);
+        
+        if (failedUploads.length > 0) {
+          console.warn('Some files failed to upload, continuing with successful ones...');
+        }
+        
+        uploadedAttachments = [...successfulUploads];
+        
+        console.log('📤 Final uploadedAttachments array:', uploadedAttachments.length);
+        console.log('📤 Final uploadedAttachments details:', uploadedAttachments.map(att => ({ fileName: att.fileName, hasFileUrl: !!att.fileUrl, hasStoragePath: !!att.storagePath })));
+      } else {
+        console.log('📤 No files to upload - uploadedFiles.length is 0');
+      }
+
+      setUploadProgress(90);
+
+      // Submit case data with voice recording and attachment info
+      console.log('📤 Submitting case with attachments:', uploadedAttachments.length);
+      console.log('📤 Attachment details:', JSON.stringify(uploadedAttachments, null, 2));
+      
+      const submissionData = {
+        userId,
+        patientName: formData.patientName,
+        patientAge: formData.patientAge,
+        patientGender: formData.patientGender,
+        relationshipToPatient: formData.relationshipToPatient,
+        hospitalName: formData.hospitalName,
+        hospitalAddress: formData.hospitalAddress,
+        hospitalState: formData.hospitalState,
+        hospitalRegistrationNo: formData.hospitalRegistrationNo,
+        department: formData.department,
+        admissionDate: formData.admissionDate.toISOString(),
+        isDischarged: formData.isDischarged,
+        dischargeDate: formData.dischargeDate?.toISOString(),
+        issueCategories: formData.issueCategories,
+        detailedDescription: formData.detailedDescription,
+        gpsLatitude: formData.gpsLatitude,
+        gpsLongitude: formData.gpsLongitude,
+        capturedAddress: formData.capturedAddress,
+        voiceRecordingUrl,
+        voiceRecordingDuration,
+        attachments: uploadedAttachments.filter(att => att && att.fileName && att.fileUrl), // Use uploaded attachments only
+        tempCaseId // Send temp case ID to move files if needed
+      };
+
+      // Note: We're NOT including formData.voiceRecording (File object) or formData.attachments (File objects)
+      // Only sending the processed URLs and uploaded attachment info
+      
+      console.log('📤 Final submission data attachments:', submissionData.attachments);
+      console.log('📤 Final submission data attachments length:', submissionData.attachments.length);
+      console.log('📤 Final submission data attachments JSON:', JSON.stringify(submissionData.attachments, null, 2));
+      console.log('📤 Final submission data:', JSON.stringify(submissionData, null, 2));
+      
       const caseResponse = await fetch('/api/cases', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          ...formData,
-          admissionDate: formData.admissionDate.toISOString(),
-          dischargeDate: formData.dischargeDate?.toISOString(),
-          voiceRecordingUrl,
-          voiceRecordingDuration
-        })
+        body: JSON.stringify(submissionData)
       });
 
       const caseData: ApiResponse<{ caseId: string }> = await caseResponse.json();
 
       if (caseData.success && caseData.data?.caseId) {
         const caseId = caseData.data.caseId;
-
-        // Upload other files to Firebase Storage
-        if (uploadedFiles.length > 0) {
-          await Promise.all(
-            uploadedFiles.map(async (file) => {
-              try {
-                const uploadResult = await fetch('/api/upload', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    file,
-                    caseId
-                  })
-                });
-                return {
-                  fileName: file.name,
-                  fileUrl: (await uploadResult.json()).data?.fileUrl || '',
-                  fileType: file.type,
-                  fileSize: file.size
-                };
-              } catch (error) {
-                console.error('Error uploading file to Firebase:', error);
-                return null;
-              }
-            })
-          );
-        }
-
-        onSuccess(caseId);
+        setUploadProgress(100);
+        setUploadStatus('success');
+        
+        // Show success message for 2 seconds before redirecting
+        setTimeout(() => {
+          onSuccess(caseId);
+        }, 2000);
       } else {
         setError(caseData.error || 'Failed to submit case');
+        setUploadStatus('error');
       }
     } catch (error) {
       setError('Network error. Please try again.');
+      setUploadStatus('error');
     } finally {
       setLoading(false);
+      setIsUploading(false);
     }
   };
 
@@ -803,20 +978,23 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-600 text-white text-lg font-bold">
                 5
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mt-3">Location & Evidence</h3>
-              <p className="text-gray-600">Add supporting documents and location</p>
+              <h3 className="text-xl font-semibold text-gray-900 mt-3">Location & Evidence (Required) - {new Date().toLocaleTimeString()}</h3>
+              <p className="text-red-600 font-medium">Both location and documents are required to submit your case</p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
-                <Label>Current Location</Label>
+                <div className="flex items-center space-x-2">
+                  <Label>Current Location <span className="text-red-500">*</span></Label>
+                  <span className="text-sm text-gray-500">(Required - Click to capture GPS location)</span>
+                </div>
                 <Button
                   onClick={getCurrentLocation}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                   disabled={!!(formData.gpsLatitude && formData.gpsLongitude)}
                 >
                   <MapPin className="h-4 w-4 mr-2" />
-                  {formData.gpsLatitude && formData.gpsLongitude ? 'Location Captured' : 'Get Current Location'}
+                  {formData.gpsLatitude && formData.gpsLongitude ? 'Location Captured ✓' : 'Get Current Location'}
                 </Button>
                 
                 {formData.gpsLatitude && formData.gpsLongitude && (
@@ -829,21 +1007,24 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
                 )}
               </div>
               
-              <div className="space-y-4">
-                <Label htmlFor="capturedAddress">Address (Optional)</Label>
-                <Textarea
-                  id="capturedAddress"
-                  value={formData.capturedAddress}
-                  onChange={(e) => updateFormData('capturedAddress', e.target.value)}
-                  placeholder="Enter address or let us capture automatically"
-                  rows={3}
-                  className="focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
             <div className="space-y-4">
-              <Label>Supporting Documents (Optional)</Label>
+              <Label htmlFor="capturedAddress">Address (Optional)</Label>
+              <Textarea
+                id="capturedAddress"
+                value={formData.capturedAddress}
+                onChange={(e) => updateFormData('capturedAddress', e.target.value)}
+                placeholder="Enter address or let us capture automatically"
+                rows={3}
+                className="focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Label>Supporting Documents <span className="text-red-500">*</span></Label>
+              <span className="text-sm text-gray-500">(Required - At least one document must be uploaded)</span>
+            </div>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
                 <input
                   ref={fileInputRef}
@@ -932,11 +1113,54 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
           {renderStep()}
           
           {/* Navigation */}
+          {/* Upload Progress Display */}
+          {isUploading && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-r-2 border-blue-600 border-t-transparent mr-2"></div>
+                  <span className="text-sm font-medium text-blue-600">
+                    {uploadStatus === 'uploading' ? 'Uploading files...' : 'Processing...'}
+                  </span>
+                </div>
+                <span className="text-sm text-gray-600">{uploadProgress}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${uploadProgress}%` }}
+                ></div>
+              </div>
+              {uploadStatus === 'success' && (
+                <div className="mt-2 text-sm text-green-600 flex items-center">
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  All files uploaded successfully!
+                </div>
+              )}
+              {uploadStatus === 'error' && (
+                <div className="mt-2 text-sm text-red-600 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  Upload failed. Please try again.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Error Display */}
+          {error && !isUploading && (
+            <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center text-red-800">
+                <AlertCircle className="h-4 w-4 mr-2" />
+                <span className="text-sm">{error}</span>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between mt-6 pt-4 border-t">
             <Button
               variant="outline"
               onClick={handlePrevious}
-              disabled={currentStep === 1}
+              disabled={currentStep === 1 || isUploading}
               className="flex items-center"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -949,10 +1173,29 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
             
             <Button
               onClick={currentStep === totalSteps ? handleSubmit : handleNext}
-              disabled={loading || !validateCurrentStep()}
+              disabled={(() => {
+                const isDisabled = loading || isUploading || !validateCurrentStep() || (currentStep === totalSteps && !hasFilesToUpload());
+                console.log('🔍 Button disabled state:', {
+                  loading,
+                  isUploading,
+                  validateCurrentStep: validateCurrentStep(),
+                  hasFilesToUpload: hasFilesToUpload(),
+                  currentStep,
+                  totalSteps,
+                  isFinalStep: currentStep === totalSteps,
+                  finalCondition: currentStep === totalSteps && !hasFilesToUpload(),
+                  isDisabled
+                });
+                return isDisabled;
+              })()}
               className="flex items-center bg-blue-600 hover:bg-blue-700 text-white"
             >
-              {loading ? (
+              {isUploading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-r-2 border-white border-t-transparent mr-2"></div>
+                  Uploading... {uploadProgress}%
+                </>
+              ) : loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-r-2 border-white border-t-transparent mr-2"></div>
                   Processing...

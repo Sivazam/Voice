@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
 
-    const cases = await FirestoreService.getAllCases(status);
+    const cases = await FirestoreService.getAllCases(status || undefined);
 
     return NextResponse.json({
       success: true,

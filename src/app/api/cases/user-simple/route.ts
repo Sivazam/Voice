@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     // Simplified approach - just get cases without complex queries
     console.log('📥 Using simplified case retrieval');
-    const cases = await FirestoreService.getAllCases();
+    const cases = await FirestoreService.getAllCases() as any[];
     console.log('📥 All cases count:', cases?.length || 0);
     
     // Filter cases by userId on client side

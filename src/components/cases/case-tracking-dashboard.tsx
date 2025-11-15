@@ -24,6 +24,7 @@ import { CaseDetailsModal } from './case-details-modal';
 
 interface CaseTrackingDashboardProps {
   userId: string;
+  refreshTrigger?: number; // Add refreshTrigger prop
 }
 
 const statusColors = {
@@ -40,7 +41,7 @@ const statusIcons = {
   RESOLVED: CheckCircle
 };
 
-export function CaseTrackingDashboard({ userId }: CaseTrackingDashboardProps) {
+export function CaseTrackingDashboard({ userId, refreshTrigger }: CaseTrackingDashboardProps) {
   const [cases, setCases] = useState<Case[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -48,10 +49,11 @@ export function CaseTrackingDashboard({ userId }: CaseTrackingDashboardProps) {
   const [statusFilter, setStatusFilter] = useState<CaseStatus | 'ALL'>('ALL');
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [showCaseDetails, setShowCaseDetails] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0); // Add refresh key
 
   useEffect(() => {
     fetchCases();
-  }, [userId]);
+  }, [userId, refreshTrigger]); // Use refreshTrigger prop
 
   const fetchCases = async () => {
     setLoading(true);
@@ -216,6 +218,15 @@ export function CaseTrackingDashboard({ userId }: CaseTrackingDashboardProps) {
                 </SelectContent>
               </Select>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setRefreshKey(prev => prev + 1)}
+              className="flex items-center space-x-2"
+            >
+              <FileText className="h-4 w-4" />
+              Refresh
+            </Button>
           </div>
         </CardContent>
       </Card>

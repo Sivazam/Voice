@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sort') || 'latest';
 
     // Get all approved cases from Firestore
-    let cases = await FirestoreService.getAllCases(CaseStatus.APPROVED);
+    let cases = await FirestoreService.getAllCases(CaseStatus.APPROVED) as unknown as Case[];
 
     // Filter for public cases only
     cases = cases.filter(case_ => case_.isPublic);
