@@ -125,7 +125,7 @@ export function CaseTrackingDashboard({ userId, refreshTrigger }: CaseTrackingDa
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -204,7 +204,7 @@ export function CaseTrackingDashboard({ userId, refreshTrigger }: CaseTrackingDa
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -216,7 +216,7 @@ export function CaseTrackingDashboard({ userId, refreshTrigger }: CaseTrackingDa
                 />
               </div>
             </div>
-            <div className="w-full md:w-48">
+            <div className="w-full sm:w-48">
               <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as CaseStatus | 'ALL')}>
                 <SelectTrigger>
                   <SelectValue />
@@ -283,7 +283,7 @@ export function CaseTrackingDashboard({ userId, refreshTrigger }: CaseTrackingDa
                         </Badge>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-sm text-gray-600">
                         <div className="flex items-center">
                           <FileText className="h-4 w-4 mr-2" />
                           <span className="font-medium">Case ID:</span>

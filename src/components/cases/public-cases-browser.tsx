@@ -21,9 +21,11 @@ import {
   AlertTriangle,
   X,
   Download,
-  Share2
+  Share2,
+  Trash2
 } from 'lucide-react';
 import { Case, CaseStatus, ApiResponse } from '@/types';
+import { useAuthStore } from '@/store/auth-store';
 
 interface PublicCasesBrowserProps {
   isOpen: boolean;
@@ -63,6 +65,7 @@ const statusIcons = {
 };
 
 export const PublicCasesBrowser = React.memo(function PublicCasesBrowser({ isOpen, onClose }: PublicCasesBrowserProps) {
+  const { user, isAuthenticated } = useAuthStore();
   const [cases, setCases] = useState<Case[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -71,6 +74,7 @@ export const PublicCasesBrowser = React.memo(function PublicCasesBrowser({ isOpe
   const [categoryFilter, setCategoryFilter] = useState('All Categories');
   const [sortBy, setSortBy] = useState('latest');
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
+  const [processingDelete, setProcessingDelete] = useState<string | null>(null);
 
   const fetchCases = useCallback(async () => {
     setLoading(true);
@@ -124,10 +128,58 @@ export const PublicCasesBrowser = React.memo(function PublicCasesBrowser({ isOpe
     setSelectedCase(case_);
   }, []);
 
+  const handleDeleteCase = useCallback(async (case_: Case) => {
+    if (!isAuthenticated || !user || (user.role !== 'ADMIN' && user.role !== 'SUPERADMIN')) {
+      setError('You do not have permission to delete cases');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete this case from ${case_.hospitalName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    setProcessingDelete(case_.id);
+    setError('');
+
+    try {
+      const response = await fetch('/api/admin/cases', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'delete',
+          caseId: case_.id,
+          reviewedBy: user.id
+        })
+      });
+
+      const data: ApiResponse<Case> = await response.json();
+
+      if (data.success) {
+        // Remove the case from the local state
+        setCases(prevCases => prevCases.filter(c => c.id !== case_.id));
+        // Show success message
+        alert('Case deleted successfully and marked as rejected for the user');
+      } else {
+        setError(data.error || 'Failed to delete case');
+      }
+    } catch (error) {
+      setError('Network error. Please try again.');
+    } finally {
+      setProcessingDelete(null);
+    }
+  }, [isAuthenticated, user]);
+
+  const canDeleteCase = useCallback(() => {
+    return isAuthenticated && user && (user.role === 'ADMIN' || user.role === 'SUPERADMIN');
+  }, [isAuthenticated, user]);
+
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <Card key={i} className="animate-pulse">
               <CardContent className="p-6">
@@ -168,7 +220,7 @@ export const PublicCasesBrowser = React.memo(function PublicCasesBrowser({ isOpe
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
             <div className="space-y-2">
               <Label htmlFor="search">Search</Label>
               <div className="relative">
@@ -249,7 +301,7 @@ export const PublicCasesBrowser = React.memo(function PublicCasesBrowser({ isOpe
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredCases.map((case_) => {
             const StatusIcon = statusIcons[case_.status];
             
@@ -266,7 +318,23 @@ export const PublicCasesBrowser = React.memo(function PublicCasesBrowser({ isOpe
                         {getStatusText(case_.status)}
                       </Badge>
                     </div>
-                    <MapPin className="h-4 w-4 text-gray-400" />
+                    <div className="flex items-center space-x-2">
+                      <MapPin className="h-4 w-4 text-gray-400" />
+                      {canDeleteCase() && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCase(case_);
+                          }}
+                          disabled={processingDelete === case_.id}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -296,7 +364,7 @@ export const PublicCasesBrowser = React.memo(function PublicCasesBrowser({ isOpe
                       </div>
                     )}
 
-                    <p className="text-sm text-gray-700 line-clamp-3">
+                    <p className="text-sm text-gray-700 line-clamp-3 max-h-16 overflow-hidden">
                       {case_.detailedDescription}
                     </p>
                   </div>
@@ -380,7 +448,7 @@ export const PublicCasesBrowser = React.memo(function PublicCasesBrowser({ isOpe
                       </div>
                     )}
                     <div><span className="font-medium">Description:</span></div>
-                    <p className="text-gray-700 bg-gray-50 p-3 rounded">
+                    <p className="text-gray-700 bg-gray-50 p-3 rounded max-h-48 overflow-y-auto whitespace-pre-wrap break-words">
                       {selectedCase.detailedDescription}
                     </p>
                   </div>

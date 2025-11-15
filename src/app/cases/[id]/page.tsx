@@ -395,8 +395,8 @@ export default function CaseReviewPage() {
                 {/* Description */}
                 <div>
                   <Label className="text-sm font-medium">Detailed Description</Label>
-                  <div className="mt-1 p-3 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-900 whitespace-pre-wrap">
+                  <div className="mt-1 p-3 bg-gray-50 rounded-lg max-h-48 overflow-y-auto">
+                    <p className="text-sm text-gray-900 whitespace-pre-wrap break-words">
                       {case_.detailedDescription}
                     </p>
                   </div>

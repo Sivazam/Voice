@@ -51,8 +51,8 @@ export async function POST(request: NextRequest) {
     const { action, ...approvalData } = body;
 
     // If this is an approval action via POST (workaround for preview environment)
-    if (action === 'approve' || action === 'reject') {
-      console.log('🔍 Admin approval via POST workaround:', {
+    if (action === 'approve' || action === 'reject' || action === 'delete') {
+      console.log('🔍 Admin action via POST workaround:', {
         action,
         approvalData,
         origin,
@@ -60,6 +60,72 @@ export async function POST(request: NextRequest) {
       });
 
       const { caseId, status, adminComments, rejectionReason, reviewedBy } = approvalData;
+
+      if (action === 'delete') {
+        // For delete action, we only need caseId and reviewedBy
+        const { caseId: deleteCaseId, reviewedBy: deleteReviewedBy } = approvalData;
+        
+        if (!deleteCaseId || !deleteReviewedBy) {
+          console.error('❌ Missing required fields for delete:', {
+            caseId: !!deleteCaseId,
+            reviewedBy: !!deleteReviewedBy
+          });
+          return NextResponse.json(
+            { success: false, error: 'Case ID and reviewer ID are required for delete action' },
+            { status: 400 }
+          );
+        }
+
+        // Verify user has admin role
+        const reviewer = await FirestoreService.getUser(deleteReviewedBy);
+        console.log('🔍 Delete reviewer user found:', {
+          id: reviewer?.id,
+          fullName: reviewer?.fullName,
+          role: reviewer?.role,
+          isActive: reviewer?.isActive
+        });
+        
+        if (!reviewer) {
+          console.error('❌ Delete reviewer not found:', deleteReviewedBy);
+          return NextResponse.json(
+            { success: false, error: `Reviewer not found: ${deleteReviewedBy}` },
+            { status: 404 }
+          );
+        }
+
+        if (reviewer.role !== UserRole.ADMIN && reviewer.role !== UserRole.SUPERADMIN) {
+          console.error('❌ Insufficient permissions for delete:', {
+            reviewerRole: reviewer.role,
+            requiredRoles: [UserRole.ADMIN, UserRole.SUPERADMIN]
+          });
+          return NextResponse.json(
+            { 
+              success: false, 
+              error: `Admin access required. Current role: ${reviewer.role}. Required: ADMIN or SUPERADMIN` 
+            },
+            { status: 403 }
+          );
+        }
+
+        // Update case to REJECTED and remove from public view
+        const deleteUpdateData = {
+          status: CaseStatus.REJECTED,
+          isPublic: false,
+          reviewedAt: new Date().toISOString(),
+          reviewedBy: deleteReviewedBy,
+          adminComments: 'Case removed from public view by administrator',
+          rejectionReason: 'Case was removed from public view by administrator'
+        };
+
+        console.log('🔍 Deleting case with data:', deleteUpdateData);
+        const updatedCase = await FirestoreService.updateCase(deleteCaseId, deleteUpdateData);
+        console.log('✅ Case deleted successfully (marked as rejected and removed from public view)');
+
+        return NextResponse.json({
+          success: true,
+          data: updatedCase
+        });
+      }
 
       if (!caseId || !status || !reviewedBy) {
         console.error('❌ Missing required fields:', {

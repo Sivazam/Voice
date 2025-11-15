@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +29,30 @@ export default React.memo(function Home() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Add mobile menu state
 
   const { user, isAuthenticated, login, logout } = useAuthStore();
+
+  // Initialize activeTab from URL parameter on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('activeTab');
+      if (tabParam && ['home', 'features', 'about', 'dashboard', 'admin', 'public-cases'].includes(tabParam)) {
+        setActiveTab(tabParam as any);
+      }
+    }
+  }, []);
+
+  // Update URL when activeTab changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (activeTab === 'home') {
+        url.searchParams.delete('activeTab');
+      } else {
+        url.searchParams.set('activeTab', activeTab);
+      }
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [activeTab]);
 
   const features = [
     {
@@ -166,7 +190,7 @@ export default React.memo(function Home() {
                   activeTab === 'public-cases' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
                 }`}
               >
-                Public Cases (Coming Soon)
+                Public Cases
               </button>
               <button
                 onClick={() => setActiveTab('features')}
@@ -274,7 +298,7 @@ export default React.memo(function Home() {
                     activeTab === 'public-cases' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
                   }`}
                 >
-                  Public Cases (Coming Soon)
+                  Public Cases
                 </button>
                 <button
                   onClick={() => {

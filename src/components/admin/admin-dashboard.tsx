@@ -118,7 +118,7 @@ export function AdminDashboard({ adminId, userRole = 'ADMIN' }: AdminDashboardPr
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           {[1, 2, 3, 4, 5].map((i) => (
             <Card key={i} className="animate-pulse">
               <CardContent className="p-6">
@@ -172,224 +172,230 @@ export function AdminDashboard({ adminId, userRole = 'ADMIN' }: AdminDashboardPr
         </div>
       )}
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Cases</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-              </div>
-              <FileText className="h-8 w-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
-              </div>
-              <Clock className="h-8 w-8 text-yellow-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Approved</p>
-                <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
-              </div>
-              <CheckCircle className="h-8 w-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Rejected</p>
-                <p className="text-2xl font-bold text-red-600">{stats.rejected}</p>
-              </div>
-              <XCircle className="h-8 w-8 text-red-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Resolved</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.resolved}</p>
-              </div>
-              <CheckCircle className="h-8 w-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Filter className="h-5 w-5 mr-2" />
-            Filter Cases
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search by hospital, patient, or case ID..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="w-full md:w-48">
-              <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as CaseStatus | 'ALL')}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All Status</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="APPROVED">Approved</SelectItem>
-                  <SelectItem value="REJECTED">Rejected</SelectItem>
-                  <SelectItem value="RESOLVED">Resolved</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Alert for pending cases */}
-      {stats.pending > 0 && (
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            You have {stats.pending} case{stats.pending > 1 ? 's' : ''} pending review. 
-            Please review them in a timely manner.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Error Alert */}
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {/* Cases List */}
-      {filteredCases.length === 0 ? (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No cases found</h3>
-            <p className="text-gray-600">
-              {searchTerm || statusFilter !== 'ALL' 
-                ? 'Try adjusting your filters or search terms'
-                : 'No cases match the current criteria'
-              }
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {filteredCases.map((case_) => {
-            const StatusIcon = statusIcons[case_.status];
-            
-            return (
-              <Card key={case_.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {case_.hospitalName}
-                        </h3>
-                        <Badge className={statusColors[case_.status]}>
-                          <StatusIcon className="h-3 w-3 mr-1" />
-                          {getStatusText(case_.status)}
-                        </Badge>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600 mb-3">
-                        <div className="flex items-center">
-                          <Users className="h-4 w-4 mr-2" />
-                          <span className="font-medium">Patient:</span>
-                          <span className="ml-1">{case_.patientName}</span>
-                        </div>
-                        
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          <span className="font-medium">Filed:</span>
-                          <span className="ml-1">{formatDate(case_.submittedAt)}</span>
-                        </div>
-                        
-                        <div className="flex items-center">
-                          <MapPin className="h-4 w-4 mr-2" />
-                          <span>{case_.hospitalState}</span>
-                        </div>
-                        
-                        <div className="flex items-center">
-                          <Paperclip className="h-4 w-4 mr-2" />
-                          <span>{case_.attachments?.length || 0} attachments</span>
-                        </div>
-                      </div>
-
-                      <div className="text-sm text-gray-600 mb-3">
-                        <span className="font-medium">Submitted by:</span> {case_.user?.fullName} ({case_.user?.phoneNumber})
-                      </div>
-
-                      {case_.issueCategories && case_.issueCategories.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {case_.issueCategories.slice(0, 3).map((category, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {category.category}
-                            </Badge>
-                          ))}
-                          {case_.issueCategories.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{case_.issueCategories.length - 3} more
-                            </Badge>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="text-sm text-gray-700 line-clamp-2">
-                        {case_.detailedDescription}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-2 ml-4">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => router.push(`/cases/${case_.id}`)}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        Review Case
-                      </Button>
-                    </div>
+      {/* Cases Content */}
+      {activeTab === 'cases' && (
+        <>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total Cases</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  <FileText className="h-8 w-8 text-blue-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Pending</p>
+                    <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
+                  </div>
+                  <Clock className="h-8 w-8 text-yellow-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Approved</p>
+                    <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
+                  </div>
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Rejected</p>
+                    <p className="text-2xl font-bold text-red-600">{stats.rejected}</p>
+                  </div>
+                  <XCircle className="h-8 w-8 text-red-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Resolved</p>
+                    <p className="text-2xl font-bold text-blue-600">{stats.resolved}</p>
+                  </div>
+                  <CheckCircle className="h-8 w-8 text-blue-600" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Filters */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Filter className="h-5 w-5 mr-2" />
+                Filter Cases
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search by hospital, patient, or case ID..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div className="w-full sm:w-48">
+                  <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as CaseStatus | 'ALL')}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Status</SelectItem>
+                      <SelectItem value="PENDING">Pending</SelectItem>
+                      <SelectItem value="APPROVED">Approved</SelectItem>
+                      <SelectItem value="REJECTED">Rejected</SelectItem>
+                      <SelectItem value="RESOLVED">Resolved</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Alert for pending cases */}
+          {stats.pending > 0 && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                You have {stats.pending} case{stats.pending > 1 ? 's' : ''} pending review. 
+                Please review them in a timely manner.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Error Alert */}
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Cases List */}
+          {filteredCases.length === 0 ? (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No cases found</h3>
+                <p className="text-gray-600">
+                  {searchTerm || statusFilter !== 'ALL' 
+                    ? 'Try adjusting your filters or search terms'
+                    : 'No cases match the current criteria'
+                  }
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {filteredCases.map((case_) => {
+                const StatusIcon = statusIcons[case_.status];
+                
+                return (
+                  <Card key={case_.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {case_.hospitalName}
+                            </h3>
+                            <Badge className={statusColors[case_.status]}>
+                              <StatusIcon className="h-3 w-3 mr-1" />
+                              {getStatusText(case_.status)}
+                            </Badge>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-sm text-gray-600 mb-3">
+                            <div className="flex items-center">
+                              <Users className="h-4 w-4 mr-2" />
+                              <span className="font-medium">Patient:</span>
+                              <span className="ml-1">{case_.patientName}</span>
+                            </div>
+                            
+                            <div className="flex items-center">
+                              <Calendar className="h-4 w-4 mr-2" />
+                              <span className="font-medium">Filed:</span>
+                              <span className="ml-1">{formatDate(case_.submittedAt)}</span>
+                            </div>
+                            
+                            <div className="flex items-center">
+                              <MapPin className="h-4 w-4 mr-2" />
+                              <span>{case_.hospitalState}</span>
+                            </div>
+                            
+                            <div className="flex items-center">
+                              <Paperclip className="h-4 w-4 mr-2" />
+                              <span>{case_.attachments?.length || 0} attachments</span>
+                            </div>
+                          </div>
+
+                          <div className="text-sm text-gray-600 mb-3">
+                            <span className="font-medium">Submitted by:</span> {case_.user?.fullName} ({case_.user?.phoneNumber})
+                          </div>
+
+                          {case_.issueCategories && case_.issueCategories.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mb-3">
+                              {case_.issueCategories.slice(0, 3).map((category, index) => (
+                                <Badge key={index} variant="outline" className="text-xs">
+                                  {category.category}
+                                </Badge>
+                              ))}
+                              {case_.issueCategories.length > 3 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{case_.issueCategories.length - 3} more
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="text-sm text-gray-700 line-clamp-3 max-h-16 overflow-hidden">
+                            {case_.detailedDescription}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2 ml-0 sm:ml-4 mt-3 sm:mt-0">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => router.push(`/cases/${case_.id}`)}
+                            className="w-full sm:w-auto"
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Review Case
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
       
       {/* User Management Tab - Only for Super Admins */}
