@@ -83,13 +83,12 @@ export default function CaseReviewPage() {
       return;
     }
     
+    setAuthChecked(true);
     console.log('🔍 Authentication check passed, fetching case');
     fetchCase();
   }, [caseId, isAuthenticated, user]);
 
   const fetchCase = async () => {
-    if (!authChecked) return;
-    
     setLoading(true);
     setError('');
 
@@ -123,16 +122,35 @@ export default function CaseReviewPage() {
   };
 
   const handleApprove = async () => {
-    if (!user || !case_) return;
+    if (!user || !case_) {
+      console.error('❌ Missing user or case data:', { user: !!user, case_: !!case_ });
+      return;
+    }
+    
+    console.log('🔍 Attempting approval with user:', {
+      userId: user.id,
+      fullName: user.fullName,
+      role: user.role,
+      phoneNumber: user.phoneNumber
+    });
+    console.log('🔍 Approving case:', {
+      caseId: case_.id,
+      currentStatus: case_.status
+    });
     
     setProcessingAction(true);
     setError('');
 
     try {
+      // Use POST with action parameter as workaround for preview environment CORS issues
       const response = await fetch('/api/admin/cases', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({
+          action: 'approve',
           caseId: case_.id,
           status: 'APPROVED',
           adminComments: reviewComments,
@@ -140,7 +158,11 @@ export default function CaseReviewPage() {
         })
       });
 
+      console.log('🔍 Approval response status:', response.status);
+      console.log('🔍 Approval response headers:', Object.fromEntries(response.headers.entries()));
+
       const data: ApiResponse<Case> = await response.json();
+      console.log('🔍 Approval response data:', data);
 
       if (data.success) {
         setCase(data.data);
@@ -148,9 +170,11 @@ export default function CaseReviewPage() {
         // Redirect back to admin panel
         router.push('/?activeTab=admin');
       } else {
+        console.error('❌ Approval failed:', data.error);
         setError(data.error || 'Failed to approve case');
       }
     } catch (error) {
+      console.error('❌ Approval error:', error);
       setError('Network error. Please try again.');
     } finally {
       setProcessingAction(false);
@@ -169,10 +193,15 @@ export default function CaseReviewPage() {
     setError('');
 
     try {
+      // Use POST with action parameter as workaround for preview environment CORS issues
       const response = await fetch('/api/admin/cases', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({
+          action: 'reject',
           caseId: case_.id,
           status: 'REJECTED',
           adminComments: reviewComments,

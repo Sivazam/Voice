@@ -10,7 +10,7 @@ export async function GET(
     
     if (!caseId) {
       return NextResponse.json(
-        { error: 'Case ID is required' },
+        { success: false, error: 'Case ID is required' },
         { status: 400 }
       );
     }
@@ -23,14 +23,17 @@ export async function GET(
     if (!caseData) {
       console.log('❌ Case not found:', caseId);
       return NextResponse.json(
-        { error: 'Case not found' },
+        { success: false, error: 'Case not found' },
         { status: 404 }
       );
     }
 
     console.log('✅ Successfully fetched case:', caseId);
     
-    return NextResponse.json(caseData);
+    return NextResponse.json({
+      success: true,
+      data: caseData
+    });
   } catch (error) {
     console.error('🔥 Error fetching case:', error);
     console.error('Error details:', {
@@ -39,7 +42,7 @@ export async function GET(
       code: (error as any).code || 'Unknown code'
     });
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { success: false, error: 'Internal server error' },
       { status: 500 }
     );
   }
