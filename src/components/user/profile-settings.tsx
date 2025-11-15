@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,6 +34,18 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Sync form data with user data whenever user changes
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        fullName: user.fullName || '',
+        email: user.email || '',
+        address: user.address || '',
+        profilePictureUrl: user.profilePictureUrl || ''
+      });
+    }
+  }, [user]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -148,9 +160,17 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-4">
                   <Avatar className="h-16 w-16">
-                    <AvatarFallback className="h-16 w-16">
-                      <User className="h-8 w-8" />
-                    </AvatarFallback>
+                    {formData.profilePictureUrl ? (
+                      <img 
+                        src={formData.profilePictureUrl} 
+                        alt="Profile" 
+                        className="h-full w-full object-cover rounded-full"
+                      />
+                    ) : (
+                      <AvatarFallback className="h-16 w-16">
+                        <User className="h-8 w-8" />
+                      </AvatarFallback>
+                    )}
                   </Avatar>
                   <div>
                     <h3 className="text-lg font-semibold">{user.fullName}</h3>
@@ -195,9 +215,17 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
                 <div className="flex items-center space-x-4">
                   <div className="relative">
                     <Avatar className="h-20 w-20">
-                      <AvatarFallback className="h-20 w-20">
-                        <User className="h-10 w-10" />
-                      </AvatarFallback>
+                      {formData.profilePictureUrl ? (
+                        <img 
+                          src={formData.profilePictureUrl} 
+                          alt="Profile" 
+                          className="h-full w-full object-cover rounded-full"
+                        />
+                      ) : (
+                        <AvatarFallback className="h-20 w-20">
+                          <User className="h-10 w-10" />
+                        </AvatarFallback>
+                      )}
                     </Avatar>
                     {formData.profilePictureUrl && (
                       <div className="absolute bottom-0 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded-full">

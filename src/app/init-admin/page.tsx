@@ -117,19 +117,17 @@ export default function InitAdminPage() {
             <p className="text-gray-600 mb-6">
               A Super Administrator already exists in the system.
             </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-blue-800">
+                <strong>Note:</strong> Use the login button on the homepage to access your Super Admin account.
+              </p>
+            </div>
             <div className="space-y-3">
               <Button 
                 onClick={() => window.location.href = '/'}
                 className="w-full"
               >
-                Go to Homepage
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => window.location.href = '/login'}
-                className="w-full"
-              >
-                Login as Super Admin
+                Go to Homepage to Login
               </Button>
             </div>
           </CardContent>

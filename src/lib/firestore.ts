@@ -247,13 +247,11 @@ export class FirestoreService {
 
   static async getAllCases(status?: string) {
     try {
+      // Simple query to avoid composite index requirement
       let q = query(collection(db, 'cases'), orderBy('submittedAt', 'desc'));
-      if (status) {
-        q = query(q, where('status', '==', status));
-      }
       const querySnapshot = await getDocs(q);
       
-      const cases = await Promise.all(
+      let allCases = await Promise.all(
         querySnapshot.docs.map(async (docSnapshot) => {
           const caseData = docSnapshot.data();
           
@@ -287,7 +285,12 @@ export class FirestoreService {
         })
       );
 
-      return cases;
+      // Filter by status on client side if specified
+      if (status) {
+        allCases = allCases.filter(case_ => case_.status === status);
+      }
+
+      return allCases;
     } catch (error) {
       console.error('Error getting all cases:', error);
       throw error;

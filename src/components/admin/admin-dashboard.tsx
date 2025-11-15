@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { 
   Shield, 
@@ -24,8 +24,6 @@ import {
   MapPin,
   Paperclip,
   AlertTriangle,
-  ThumbsUp,
-  ThumbsDown,
   Crown,
   Settings
 } from 'lucide-react';
@@ -52,16 +50,13 @@ const statusIcons = {
 };
 
 export function AdminDashboard({ adminId, userRole = 'ADMIN' }: AdminDashboardProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'cases' | 'users'>('cases');
   const [cases, setCases] = useState<Case[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<CaseStatus | 'ALL'>('PENDING' as CaseStatus | 'ALL');
-  const [selectedCase, setSelectedCase] = useState<Case | null>(null);
-  const [reviewComments, setReviewComments] = useState('');
-  const [rejectionReason, setRejectionReason] = useState('');
-  const [processingAction, setProcessingAction] = useState(false);
 
   useEffect(() => {
     fetchCases();
@@ -88,77 +83,6 @@ export function AdminDashboard({ adminId, userRole = 'ADMIN' }: AdminDashboardPr
       setError('Network error. Please try again.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleApprove = async (caseId: string) => {
-    setProcessingAction(true);
-    setError('');
-
-    try {
-      const response = await fetch('/api/admin/cases', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          caseId,
-          status: 'APPROVED',
-          adminComments: reviewComments,
-          reviewedBy: adminId
-        })
-      });
-
-      const data: ApiResponse<Case> = await response.json();
-
-      if (data.success) {
-        setSelectedCase(null);
-        setReviewComments('');
-        fetchCases();
-      } else {
-        setError(data.error || 'Failed to approve case');
-      }
-    } catch (error) {
-      setError('Network error. Please try again.');
-    } finally {
-      setProcessingAction(false);
-    }
-  };
-
-  const handleReject = async (caseId: string) => {
-    if (!rejectionReason.trim()) {
-      setError('Please provide a rejection reason');
-      return;
-    }
-
-    setProcessingAction(true);
-    setError('');
-
-    try {
-      const response = await fetch('/api/admin/cases', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          caseId,
-          status: 'REJECTED',
-          adminComments: reviewComments,
-          rejectionReason,
-          reviewedBy: adminId
-        })
-      });
-
-      const data: ApiResponse<Case> = await response.json();
-
-      if (data.success) {
-        setSelectedCase(null);
-        setReviewComments('');
-        setRejectionReason('');
-        fetchCases();
-      } else {
-        setError(data.error || 'Failed to reject case');
-      }
-    } catch (error) {
-      setError('Network error. Please try again.');
-    } finally {
-      setProcessingAction(false);
     }
   };
 
@@ -451,133 +375,14 @@ export function AdminDashboard({ adminId, userRole = 'ADMIN' }: AdminDashboardPr
                     </div>
 
                     <div className="flex items-center space-x-2 ml-4">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => setSelectedCase(case_)}
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            Review
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                          <DialogHeader>
-                            <DialogTitle>Case Review - {case_.hospitalName}</DialogTitle>
-                            <DialogDescription>
-                              Case ID: {case_.id}
-                            </DialogDescription>
-                          </DialogHeader>
-                          
-                          {selectedCase && (
-                            <div className="space-y-6">
-                              {/* Case Details */}
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                  <Label className="text-sm font-medium">Patient Name</Label>
-                                  <p className="text-sm text-gray-900">{selectedCase.patientName}</p>
-                                </div>
-                                <div>
-                                  <Label className="text-sm font-medium">Age & Gender</Label>
-                                  <p className="text-sm text-gray-900">{selectedCase.patientAge}, {selectedCase.patientGender}</p>
-                                </div>
-                                <div>
-                                  <Label className="text-sm font-medium">Hospital</Label>
-                                  <p className="text-sm text-gray-900">{selectedCase.hospitalName}</p>
-                                </div>
-                                <div>
-                                  <Label className="text-sm font-medium">Department</Label>
-                                  <p className="text-sm text-gray-900">{selectedCase.department}</p>
-                                </div>
-                                <div>
-                                  <Label className="text-sm font-medium">Admission Date</Label>
-                                  <p className="text-sm text-gray-900">{formatDate(selectedCase.admissionDate)}</p>
-                                </div>
-                                <div>
-                                  <Label className="text-sm font-medium">Submitted By</Label>
-                                  <p className="text-sm text-gray-900">{selectedCase.user?.fullName}</p>
-                                </div>
-                              </div>
-
-                              {/* Issue Categories */}
-                              <div>
-                                <Label className="text-sm font-medium">Issue Categories</Label>
-                                <div className="flex flex-wrap gap-2 mt-1">
-                                  {selectedCase.issueCategories?.map((category, index) => (
-                                    <Badge key={index} variant="outline">
-                                      {category.category}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
-
-                              {/* Description */}
-                              <div>
-                                <Label className="text-sm font-medium">Detailed Description</Label>
-                                <p className="text-sm text-gray-900 mt-1 whitespace-pre-wrap">
-                                  {selectedCase.detailedDescription}
-                                </p>
-                              </div>
-
-                              {/* Admin Comments */}
-                              <div>
-                                <Label htmlFor="adminComments" className="text-sm font-medium">
-                                  Admin Comments
-                                </Label>
-                                <Textarea
-                                  id="adminComments"
-                                  value={reviewComments}
-                                  onChange={(e) => setReviewComments(e.target.value)}
-                                  placeholder="Add your comments about this case..."
-                                  rows={3}
-                                  className="mt-1"
-                                />
-                              </div>
-
-                              {/* Rejection Reason (only show if rejecting) */}
-                              {selectedCase.status === 'PENDING' && (
-                                <div>
-                                  <Label htmlFor="rejectionReason" className="text-sm font-medium">
-                                    Rejection Reason (if rejecting)
-                                  </Label>
-                                  <Textarea
-                                    id="rejectionReason"
-                                    value={rejectionReason}
-                                    onChange={(e) => setRejectionReason(e.target.value)}
-                                    placeholder="Provide a clear reason for rejection..."
-                                    rows={2}
-                                    className="mt-1"
-                                  />
-                                </div>
-                              )}
-
-                              {/* Actions */}
-                              {selectedCase.status === 'PENDING' && (
-                                <div className="flex justify-end space-x-3 pt-4 border-t">
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => handleReject(selectedCase.id)}
-                                    disabled={processingAction}
-                                    className="text-red-600 hover:text-red-700"
-                                  >
-                                    <ThumbsDown className="h-4 w-4 mr-2" />
-                                    Reject
-                                  </Button>
-                                  <Button
-                                    onClick={() => handleApprove(selectedCase.id)}
-                                    disabled={processingAction}
-                                    className="bg-green-600 hover:bg-green-700"
-                                  >
-                                    <ThumbsUp className="h-4 w-4 mr-2" />
-                                    Approve
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </DialogContent>
-                      </Dialog>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => router.push(`/cases/${case_.id}`)}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Review Case
+                      </Button>
                     </div>
                   </div>
                 </CardContent>

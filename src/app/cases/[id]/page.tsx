@@ -1,229 +1,240 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
-  Calendar, 
-  MapPin, 
-  User, 
-  Building, 
+  Shield, 
+  Users, 
   FileText, 
   Clock, 
   CheckCircle, 
   XCircle, 
-  AlertCircle,
-  Phone,
-  Mail,
+  Eye,
+  Search,
+  Filter,
+  Calendar,
+  MapPin,
   Paperclip,
-  Play,
-  Pause,
-  Download,
+  AlertTriangle,
+  ThumbsUp,
+  ThumbsDown,
+  Crown,
+  Settings,
   ArrowLeft,
-  Edit,
-  Share2
+  Download,
+  Play,
+  Pause
 } from 'lucide-react';
-import { Case, CaseStatus, Gender } from '@/types';
+import { Case, CaseStatus, ApiResponse } from '@/types';
+import { useAuthStore } from '@/store/auth-store';
 
-const statusConfig = {
-  PENDING: { color: 'bg-yellow-100 text-yellow-800', icon: Clock, label: 'Pending' },
-  APPROVED: { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: 'Approved' },
-  REJECTED: { color: 'bg-red-100 text-red-800', icon: XCircle, label: 'Rejected' },
-  RESOLVED: { color: 'bg-blue-100 text-blue-800', icon: CheckCircle, label: 'Resolved' }
+const statusColors = {
+  PENDING: 'bg-yellow-100 text-yellow-800',
+  APPROVED: 'bg-green-100 text-green-800',
+  REJECTED: 'bg-red-100 text-red-800',
+  RESOLVED: 'bg-blue-100 text-blue-800'
 };
 
-export default function CaseDetailsPage() {
+const statusIcons = {
+  PENDING: Clock,
+  APPROVED: CheckCircle,
+  REJECTED: XCircle,
+  RESOLVED: CheckCircle
+};
+
+export default function CaseReviewPage() {
   const params = useParams();
   const router = useRouter();
+  const { user, isAuthenticated } = useAuthStore();
   const [case_, setCase] = useState<Case | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const [reviewComments, setReviewComments] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [processingAction, setProcessingAction] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const [audioProgress, setAudioProgress] = useState(0);
-  const [audioDuration, setAudioDuration] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
   const caseId = params.id as string;
 
-  const formatDate = (date: Date | string | undefined | any) => {
-    if (!date) return 'N/A';
+  useEffect(() => {
+    console.log('🔍 Case review page mounted');
+    console.log('🔍 Case ID:', caseId);
+    console.log('🔍 Is authenticated:', isAuthenticated);
+    console.log('🔍 User:', user);
+    
+    if (!isAuthenticated) {
+      console.log('🔍 User not authenticated, redirecting to login');
+      router.push('/');
+      return;
+    }
+    
+    if (!user) {
+      console.log('🔍 User data not available, redirecting to login');
+      router.push('/');
+      return;
+    }
+    
+    console.log('🔍 Authentication check passed, fetching case');
+    fetchCase();
+  }, [caseId, isAuthenticated, user]);
+
+  const fetchCase = async () => {
+    if (!authChecked) return;
+    
+    setLoading(true);
+    setError('');
+
+    console.log('🔍 Starting case fetch for caseId:', caseId);
+    console.log('🔍 User authenticated:', isAuthenticated);
+    console.log('🔍 User data:', user);
+
     try {
-      let dateObj: Date;
+      const response = await fetch(`/api/cases/${caseId}`);
+      console.log('🔍 API response status:', response.status);
       
-      if (typeof date === 'object' && date !== null && 'seconds' in date) {
-        dateObj = new Date((date as any).seconds * 1000 + ((date as any).nanoseconds || 0) / 1000000);
+      const data: ApiResponse<Case> = await response.json();
+      console.log('🔍 API response data:', data);
+
+      if (data.success && data.data) {
+        console.log('✅ Case data set successfully');
+        console.log('📊 Case data structure:', JSON.stringify(data.data, null, 2));
+        setCase(data.data);
+        setReviewComments(data.data.adminComments || '');
+        setRejectionReason(data.data.rejectionReason || '');
       } else {
-        dateObj = new Date(date);
+        console.log('❌ API returned error:', data.error);
+        setError(data.error || 'Failed to fetch case');
       }
-      
-      if (isNaN(dateObj.getTime())) {
-        return 'Invalid Date';
-      }
-      
-      return dateObj.toLocaleDateString('en-US', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric'
-      });
     } catch (error) {
-      console.error('Error formatting date:', error);
+      console.error('🔥 Fetch error:', error);
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    if (!user || !case_) return;
+    
+    setProcessingAction(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/admin/cases', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          caseId: case_.id,
+          status: 'APPROVED',
+          adminComments: reviewComments,
+          reviewedBy: user.id
+        })
+      });
+
+      const data: ApiResponse<Case> = await response.json();
+
+      if (data.success) {
+        setCase(data.data);
+        setReviewComments('');
+        // Redirect back to admin panel
+        router.push('/?activeTab=admin');
+      } else {
+        setError(data.error || 'Failed to approve case');
+      }
+    } catch (error) {
+      setError('Network error. Please try again.');
+    } finally {
+      setProcessingAction(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!user || !case_) return;
+    
+    if (!rejectionReason.trim()) {
+      setError('Please provide a rejection reason');
+      return;
+    }
+
+    setProcessingAction(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/admin/cases', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          caseId: case_.id,
+          status: 'REJECTED',
+          adminComments: reviewComments,
+          rejectionReason,
+          reviewedBy: user.id
+        })
+      });
+
+      const data: ApiResponse<Case> = await response.json();
+
+      if (data.success) {
+        setCase(data.data);
+        setReviewComments('');
+        setRejectionReason('');
+        // Redirect back to admin panel
+        router.push('/?activeTab=admin');
+      } else {
+        setError(data.error || 'Failed to reject case');
+      }
+    } catch (error) {
+      setError('Network error. Please try again.');
+    } finally {
+      setProcessingAction(false);
+    }
+  };
+
+  const formatDate = (date: Date | string) => {
+    const dateObj = new Date(date);
+    if (isNaN(dateObj.getTime())) {
       return 'Invalid Date';
     }
+    return dateObj.toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
   };
 
-  const formatDateTime = (date: Date | string | undefined | any) => {
-    if (!date) return 'N/A';
-    try {
-      let dateObj: Date;
-      
-      if (typeof date === 'object' && date !== null && 'seconds' in date) {
-        dateObj = new Date((date as any).seconds * 1000 + ((date as any).nanoseconds || 0) / 1000000);
-      } else {
-        dateObj = new Date(date);
-      }
-      
-      if (isNaN(dateObj.getTime())) {
-        return 'Invalid Date';
-      }
-      
-      return dateObj.toLocaleString('en-US', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch (error) {
-      console.error('Error formatting datetime:', error);
+  const formatDateTime = (date: Date | string) => {
+    const dateObj = new Date(date);
+    if (isNaN(dateObj.getTime())) {
       return 'Invalid Date';
     }
+    return dateObj.toLocaleString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  const getStatusText = (status: CaseStatus) => {
+    return status.charAt(0) + status.slice(1).toLowerCase();
   };
-
-  const calculateDuration = () => {
-    if (!case_?.admissionDate) return 0;
-    try {
-      const admissionDate = new Date(case_.admissionDate);
-      const endDate = case_.dischargeDate ? new Date(case_.dischargeDate) : new Date();
-      
-      if (isNaN(admissionDate.getTime()) || isNaN(endDate.getTime())) {
-        return 0;
-      }
-      
-      return Math.ceil((endDate.getTime() - admissionDate.getTime()) / (1000 * 60 * 60 * 24));
-    } catch (error) {
-      console.error('Error calculating duration:', error);
-      return 0;
-    }
-  };
-
-  const handleAudioPlay = async () => {
-    if (!audioRef.current) return;
-
-    try {
-      if (isPlayingAudio) {
-        audioRef.current.pause();
-        setIsPlayingAudio(false);
-      } else {
-        if (audioRef.current.readyState < 2) {
-          await new Promise((resolve) => {
-            if (audioRef.current) {
-              audioRef.current.addEventListener('canplay', resolve, { once: true });
-            }
-          });
-        }
-        
-        await audioRef.current.play();
-        setIsPlayingAudio(true);
-      }
-    } catch (error) {
-      console.error('Error playing audio:', error);
-      if ((error as Error).name === 'NotAllowedError') {
-        alert('Please interact with the page first to play audio');
-      } else {
-        window.open(case_?.voiceRecordingUrl, '_blank');
-      }
-    }
-  };
-
-  const handleAudioTimeUpdate = () => {
-    if (!audioRef.current) return;
-    
-    const current = audioRef.current.currentTime;
-    const duration = audioRef.current.duration;
-    
-    if (!isNaN(duration) && duration > 0) {
-      setCurrentTime(current);
-      setAudioProgress((current / duration) * 100);
-    }
-  };
-
-  const handleAudioLoadedMetadata = () => {
-    if (!audioRef.current) return;
-    
-    const duration = audioRef.current.duration;
-    if (!isNaN(duration) && duration > 0) {
-      setAudioDuration(duration);
-    }
-  };
-
-  const handleAudioEnded = () => {
-    setIsPlayingAudio(false);
-    setAudioProgress(0);
-    setCurrentTime(0);
-  };
-
-  const handleAudioError = (e: React.SyntheticEvent<HTMLAudioElement>) => {
-    console.error('Audio error:', e);
-  };
-
-  useEffect(() => {
-    const fetchCase = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/cases/${caseId}`);
-        if (!response.ok) {
-          throw new Error('Case not found');
-        }
-        const caseData = await response.json();
-        setCase(caseData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load case');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (caseId) {
-      fetchCase();
-    }
-  }, [caseId]);
-
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      setIsPlayingAudio(false);
-      setAudioProgress(0);
-      setCurrentTime(0);
-    }
-  }, []);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading case details...</p>
+          <h2 className="text-xl font-semibold text-gray-900">Loading Case Details...</h2>
         </div>
       </div>
     );
@@ -231,408 +242,348 @@ export default function CaseDetailsPage() {
 
   if (error || !case_) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="bg-red-100 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <XCircle className="h-8 w-8 text-red-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Case Not Found</h1>
-          <p className="text-gray-600 mb-6">{error || 'The case you are looking for does not exist.'}</p>
-          <Button onClick={() => router.back()} className="bg-blue-600 hover:bg-blue-700">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <AlertTriangle className="h-12 w-12 text-red-600 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Case</h2>
+          {error && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          <Button onClick={() => router.push('/?activeTab=admin')} className="mt-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Go Back
+            Back to Admin Panel
           </Button>
         </div>
       </div>
     );
   }
 
-  const statusInfo = statusConfig[case_.status];
+  const StatusIcon = statusIcons[case_.status];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+      <header className="bg-white/90 backdrop-blur-md border-b border-blue-100 sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => router.back()}
-                className="hover:bg-gray-100"
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push('/?activeTab=admin')}
+                className="hover:bg-blue-50"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
+                Back to Admin Panel
               </Button>
-              <div className="flex items-center space-x-3">
-                <Building className="h-6 w-6 text-blue-600" />
-                <div>
-                  <h1 className="text-xl font-bold text-gray-900 truncate max-w-[200px] sm:max-w-md">
-                    {case_.hospitalName}
-                  </h1>
-                  <p className="text-sm text-gray-600">
-                    Case ID: {case_.id.slice(0, 8)}...
-                  </p>
-                </div>
+              <div className="flex items-center space-x-2">
+                <Shield className="h-6 w-6 text-blue-600" />
+                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+                  Case Review
+                </h1>
               </div>
             </div>
-            
-            <div className="flex items-center space-x-2">
-              <Badge className={`${statusInfo.color} px-3 py-1`}>
-                <statusInfo.icon className="h-3 w-3 mr-1" />
-                <span className="text-xs font-medium">{statusInfo.label}</span>
-              </Badge>
-              <Button variant="outline" size="sm" className="hover:bg-gray-50">
-                <Share2 className="h-4 w-4" />
-              </Button>
-            </div>
+            <Badge className={`${statusColors[case_.status]} px-4 py-2`}>
+              <StatusIcon className="h-4 w-4 mr-2" />
+              {getStatusText(case_.status)}
+            </Badge>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6 max-w-6xl">
+      <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content - 2 columns on large screens */}
+          {/* Left Column - Case Details */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Patient Information Card */}
+            {/* Case Information Card */}
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                  <User className="h-5 w-5 text-blue-600" />
-                  Patient Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500 uppercase tracking-wide mb-1">Full Name</p>
-                    <p className="text-base font-medium">{case_.patientName}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 uppercase tracking-wide mb-1">Age</p>
-                    <p className="text-base font-medium">{case_.patientAge} years</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 uppercase tracking-wide mb-1">Gender</p>
-                    <p className="text-base font-medium">{case_.patientGender}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 uppercase tracking-wide mb-1">Relationship</p>
-                    <p className="text-base font-medium">{case_.relationshipToPatient}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Hospital Information Card */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                  <Building className="h-5 w-5 text-blue-600" />
-                  Hospital Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="sm:col-span-2">
-                    <p className="text-sm text-gray-500 uppercase tracking-wide mb-1">Hospital Name</p>
-                    <p className="text-base font-medium">{case_.hospitalName}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 uppercase tracking-wide mb-1">Department</p>
-                    <p className="text-base font-medium">{case_.department}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 uppercase tracking-wide mb-1">State</p>
-                    <p className="text-base font-medium">{case_.hospitalState}</p>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <p className="text-sm text-gray-500 uppercase tracking-wide mb-1">Address</p>
-                    <p className="text-base font-medium">{case_.hospitalAddress}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 uppercase tracking-wide mb-1">Reg. Number</p>
-                    <p className="text-base font-medium">{case_.hospitalRegistrationNo || 'Not provided'}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Detailed Description Card */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5 text-blue-600" />
-                  Detailed Description
+                  Case Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-base leading-relaxed break-words overflow-wrap">
-                    {case_.detailedDescription}
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium">Case ID</Label>
+                    <p className="text-sm text-gray-900 font-mono">{case_.id.slice(0, 12)}...</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Status</Label>
+                    <Badge className={`${statusColors[case_.status]} mt-1`}>
+                      <StatusIcon className="h-3 w-3 mr-1" />
+                      {getStatusText(case_.status)}
+                    </Badge>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Patient Name</Label>
+                    <p className="text-sm text-gray-900 font-medium">{case_.patientName}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Age & Gender</Label>
+                    <p className="text-sm text-gray-900">{case_.patientAge}, {case_.patientGender}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Hospital</Label>
+                    <p className="text-sm text-gray-900">{case_.hospitalName}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Department</Label>
+                    <p className="text-sm text-gray-900">{case_.department}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Admission Date</Label>
+                    <p className="text-sm text-gray-900">{formatDate(case_.admissionDate)}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Submitted Date</Label>
+                    <p className="text-sm text-gray-900">{formatDateTime(case_.submittedAt)}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Submitted By</Label>
+                    <p className="text-sm text-gray-900">{case_.user?.fullName}</p>
+                  </div>
+                </div>
+
+                {/* Issue Categories */}
+                {case_.issueCategories && case_.issueCategories.length > 0 && (
+                  <div>
+                    <Label className="text-sm font-medium">Issue Categories</Label>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {case_.issueCategories.map((category, index) => (
+                        <Badge key={index} variant="outline">
+                          {category.category}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Description */}
+                <div>
+                  <Label className="text-sm font-medium">Detailed Description</Label>
+                  <div className="mt-1 p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-900 whitespace-pre-wrap">
+                      {case_.detailedDescription}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Attachments */}
+                {case_.attachments && case_.attachments.length > 0 && (
+                  <div>
+                    <Label className="text-sm font-medium">Attachments</Label>
+                    <div className="mt-2 space-y-2">
+                      {case_.attachments.map((attachment, index) => (
+                        <div key={attachment.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center space-x-3">
+                            <Paperclip className="h-4 w-4 text-gray-500" />
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{attachment.fileName}</p>
+                              <p className="text-xs text-gray-500">
+                                {(attachment.fileSize / 1024).toFixed(1)} KB • {attachment.fileType}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(attachment.fileUrl, '_blank')}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Download
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Audio Recording */}
+                {case_.voiceRecordingUrl && (
+                  <div>
+                    <Label className="text-sm font-medium">Audio Recording</Label>
+                    <div className="mt-2 p-3 border rounded-lg">
+                      <audio controls className="w-full">
+                        <source src={case_.voiceRecordingUrl} type="audio/mpeg" />
+                        Your browser does not support the audio element.
+                      </audio>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Admin Actions Card */}
+            {case_.status === 'PENDING' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-blue-600" />
+                    Admin Actions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Admin Comments */}
+                  <div>
+                    <Label htmlFor="adminComments" className="text-sm font-medium">
+                      Admin Comments
+                    </Label>
+                    <Textarea
+                      id="adminComments"
+                      value={reviewComments}
+                      onChange={(e) => setReviewComments(e.target.value)}
+                      placeholder="Add your comments about this case..."
+                      rows={4}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  {/* Rejection Reason */}
+                  <div>
+                    <Label htmlFor="rejectionReason" className="text-sm font-medium">
+                      Rejection Reason (if rejecting)
+                    </Label>
+                    <Textarea
+                      id="rejectionReason"
+                      value={rejectionReason}
+                      onChange={(e) => setRejectionReason(e.target.value)}
+                      placeholder="Provide a clear reason for rejection..."
+                      rows={3}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-4 border-t">
+                    <Button
+                      variant="outline"
+                      onClick={handleReject}
+                      disabled={processingAction}
+                      className="flex-1 text-red-600 hover:text-red-700"
+                    >
+                      <ThumbsDown className="h-4 w-4 mr-2" />
+                      {processingAction ? 'Rejecting...' : 'Reject'}
+                    </Button>
+                    <Button
+                      onClick={handleApprove}
+                      disabled={processingAction}
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                    >
+                      <ThumbsUp className="h-4 w-4 mr-2" />
+                      {processingAction ? 'Approving...' : 'Approve'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Admin Review History */}
+            {(case_.adminComments || case_.rejectionReason || case_.reviewedBy) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-purple-600" />
+                    Review History
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {case_.reviewedAt && (
+                    <div>
+                      <Label className="text-sm font-medium">Reviewed On</Label>
+                      <p className="text-sm text-gray-900">{formatDateTime(case_.reviewedAt)}</p>
+                    </div>
+                  )}
+                  {case_.reviewedBy && (
+                    <div>
+                      <Label className="text-sm font-medium">Reviewed By</Label>
+                      <p className="text-sm text-gray-900">{case_.reviewedBy}</p>
+                    </div>
+                  )}
+                  {case_.adminComments && (
+                    <div>
+                      <Label className="text-sm font-medium">Admin Comments</Label>
+                      <div className="mt-1 p-3 bg-blue-50 rounded-lg">
+                        <p className="text-sm text-gray-900">{case_.adminComments}</p>
+                      </div>
+                    </div>
+                  )}
+                  {case_.rejectionReason && (
+                    <div>
+                      <Label className="text-sm font-medium">Rejection Reason</Label>
+                      <div className="mt-1 p-3 bg-red-50 rounded-lg">
+                        <p className="text-sm text-red-800">{case_.rejectionReason}</p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Right Column - Status & Quick Actions */}
+          <div className="space-y-6">
+            {/* Status Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Case Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center space-y-4">
+                  <Badge className={`${statusColors[case_.status]} text-lg px-6 py-3`}>
+                    <StatusIcon className="h-6 w-6 mr-2" />
+                    {getStatusText(case_.status)}
+                  </Badge>
+                  <p className="text-sm text-gray-600">
+                    {case_.status === 'PENDING' && 'Awaiting admin review'}
+                    {case_.status === 'APPROVED' && 'Approved for public viewing'}
+                    {case_.status === 'REJECTED' && 'Rejected by administrator'}
+                    {case_.status === 'RESOLVED' && 'Case has been resolved'}
                   </p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Voice Recording Card */}
-            {case_.voiceRecordingUrl && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                    <Play className="h-5 w-5 text-blue-600" />
-                    Voice Recording
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <audio
-                    ref={audioRef}
-                    src={`/api/proxy/storage?url=${encodeURIComponent(case_.voiceRecordingUrl)}`}
-                    onTimeUpdate={handleAudioTimeUpdate}
-                    onLoadedMetadata={handleAudioLoadedMetadata}
-                    onEnded={handleAudioEnded}
-                    onError={handleAudioError}
-                    preload="metadata"
-                    className="hidden"
-                  />
-                  
-                  <div className="flex flex-col sm:flex-row items-center gap-4 mt-4">
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleAudioPlay}
-                        className="flex items-center gap-2"
-                      >
-                        {isPlayingAudio ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                        {isPlayingAudio ? 'Pause' : 'Play'}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(`/api/proxy/storage?url=${encodeURIComponent(case_.voiceRecordingUrl || '')}`, '_blank')}
-                        className="flex items-center gap-2"
-                      >
-                        <Download className="h-4 w-4" />
-                        Download
-                      </Button>
-                    </div>
-                    
-                    <div className="w-full sm:w-64">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${audioProgress}%` }}
-                        />
-                      </div>
-                      <div className="flex justify-between text-xs text-gray-500 mt-1">
-                        <span>{formatDuration(currentTime)}</span>
-                        <span>{formatDuration(audioDuration)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Attachments Card */}
-            {case_.attachments && case_.attachments.length > 0 && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-base font-semibold">
-                      <Paperclip className="h-5 w-5 text-blue-600" />
-                      Attachments
-                    </div>
-                    <Badge variant="secondary" className="text-xs">
-                      {case_.attachments.length} files
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="space-y-3">
-                    {case_.attachments.map((attachment, index) => (
-                      <div key={index} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded bg-blue-100 flex-shrink-0">
-                            <FileText className="h-5 w-5 text-blue-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-base font-medium truncate" title={attachment.fileName}>
-                              {attachment.fileName}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {attachment.fileType} • {(attachment.fileSize / 1024).toFixed(1)} KB
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open(`/api/proxy/storage?url=${encodeURIComponent(attachment.fileUrl || '')}`, '_blank')}
-                          className="w-full sm:w-auto mt-3"
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          Download
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Sidebar - 1 column on large screens */}
-          <div className="space-y-6">
-            {/* Treatment Timeline Card */}
+            {/* Quick Actions */}
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                  <Calendar className="h-5 w-5 text-blue-600" />
-                  Treatment Timeline
-                </CardTitle>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-gray-500 uppercase tracking-wide mb-1">Admission</p>
-                    <p className="text-base font-medium">{formatDate(case_.admissionDate)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 uppercase tracking-wide mb-1">Status</p>
-                    <p className="text-base font-medium">{case_.isDischarged ? 'Discharged' : 'Admitted'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 uppercase tracking-wide mb-1">Duration</p>
-                    <p className="text-base font-medium">{calculateDuration()} days</p>
-                  </div>
-                  {case_.dischargeDate && (
-                    <div>
-                      <p className="text-sm text-gray-500 uppercase tracking-wide mb-1">Discharge</p>
-                      <p className="text-base font-medium">{formatDate(case_.dischargeDate)}</p>
-                    </div>
-                  )}
-                </div>
+              <CardContent className="space-y-3">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => window.open(`/cases/${case_.id}`, '_blank')}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  View as User
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => router.push('/?activeTab=admin')}
+                >
+                  <Shield className="h-4 w-4 mr-2" />
+                  Back to Admin Panel
+                </Button>
               </CardContent>
             </Card>
-
-            {/* Issue Categories Card */}
-            {case_.issueCategories && case_.issueCategories.length > 0 && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                    <AlertCircle className="h-5 w-5 text-blue-600" />
-                    Issue Categories
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex flex-wrap gap-2">
-                    {case_.issueCategories.map((category, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {category.category}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Location Information Card */}
-            {(case_.gpsLatitude && case_.gpsLongitude) && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                    <MapPin className="h-5 w-5 text-blue-600" />
-                    Location Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm text-gray-500 uppercase tracking-wide mb-1">GPS Coordinates</p>
-                      <p className="text-sm font-mono">{case_.gpsLatitude.toFixed(6)}, {case_.gpsLongitude.toFixed(6)}</p>
-                    </div>
-                    {case_.capturedAddress && (
-                      <div>
-                        <p className="text-sm text-gray-500 uppercase tracking-wide mb-1">Address</p>
-                        <p className="text-base font-medium">{case_.capturedAddress}</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Case Status Card */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                  <Clock className="h-5 w-5 text-blue-600" />
-                  Case Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Current Status</span>
-                    <Badge className={`${statusInfo.color} px-2 py-1`}>
-                      <statusInfo.icon className="h-3 w-3 mr-1" />
-                      <span className="text-xs font-medium">{statusInfo.label}</span>
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Filed On</span>
-                    <span className="text-sm font-medium">{formatDateTime(case_.submittedAt)}</span>
-                  </div>
-                  {case_.reviewedAt && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-500">Reviewed On</span>
-                      <span className="text-sm font-medium">{formatDateTime(case_.reviewedAt)}</span>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Admin Information Card */}
-            {case_.reviewedBy && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                    <CheckCircle className="h-5 w-5 text-blue-600" />
-                    Review Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm text-gray-500 uppercase tracking-wide mb-1">Reviewed By</p>
-                      <p className="text-base font-medium">Admin User</p>
-                    </div>
-                    {case_.reviewedAt && (
-                      <div>
-                        <p className="text-sm text-gray-500 uppercase tracking-wide mb-1">Review Date</p>
-                        <p className="text-base font-medium">{formatDateTime(case_.reviewedAt)}</p>
-                      </div>
-                    )}
-                    {case_.adminComments && (
-                      <div>
-                        <p className="text-sm text-gray-500 uppercase tracking-wide mb-1">Admin Comments</p>
-                        <div className="bg-gray-50 rounded-lg p-3">
-                          <p className="text-sm">{case_.adminComments}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
       </main>
+
+      {/* Error Alert */}
+      {error && (
+        <div className="fixed bottom-4 right-4 z-50 max-w-md">
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        </div>
+      )}
     </div>
   );
 }

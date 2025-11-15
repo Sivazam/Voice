@@ -184,6 +184,31 @@ export default React.memo(function Home() {
               >
                 About
               </button>
+              {isAuthenticated && user && (
+                <>
+                  <div className="h-6 w-px bg-gray-300" />
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowProfileSettings(true)}
+                      className="font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 text-gray-600 hover:text-blue-600 flex items-center"
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      Settings
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleLogout}
+                      className="font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 flex items-center"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </Button>
+                  </div>
+                </>
+              )}
             </nav>
 
             {/* Mobile Menu Button */}
@@ -283,9 +308,9 @@ export default React.memo(function Home() {
                         setShowProfileSettings(true);
                         setIsMobileMenuOpen(false);
                       }}
-                      className="w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 text-gray-600 hover:text-blue-600"
+                      className="w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 text-gray-600 hover:text-blue-600 flex items-center"
                     >
-                      <Settings className="h-4 w-4 mr-2" />
+                      <Settings className="h-4 w-4 mr-2 flex-shrink-0" />
                       Profile Settings
                     </button>
                     <button
@@ -293,9 +318,9 @@ export default React.memo(function Home() {
                         handleLogout();
                         setIsMobileMenuOpen(false);
                       }}
-                      className="w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700"
+                      className="w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 flex items-center"
                     >
-                      <LogOut className="h-4 w-4 mr-2" />
+                      <LogOut className="h-4 w-4 mr-2 flex-shrink-0" />
                       Logout
                     </button>
                   </div>
