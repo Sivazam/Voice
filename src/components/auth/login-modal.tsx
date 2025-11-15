@@ -106,7 +106,7 @@ export function LoginModal({ isOpen, onClose, onLoginSuccess, onProfileRequired 
           <div className="mx-auto mb-4">
             <Shield className="h-12 w-12 text-blue-600" />
           </div>
-          <CardTitle className="text-2xl">Sign In to HealthRights</CardTitle>
+          <CardTitle className="text-2xl">Sign In to Break Your Silence</CardTitle>
           <CardDescription>
             {step === 'phone' 
               ? 'Enter your phone number to continue' 

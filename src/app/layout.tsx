@@ -14,10 +14,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HealthRights - Healthcare Transparency Platform",
+  title: "Break Your Silence - Healthcare Transparency Platform",
   description: "Report hospital malpractices, overcharging, and healthcare issues. Track cases and access transparent healthcare information.",
   keywords: ["healthcare", "hospital", "malpractice", "patient rights", "transparency", "complaints", "medical"],
-  authors: [{ name: "HealthRights Team" }],
+  authors: [{ name: "Break Your Silence Team" }],
   icons: {
     icon: "/logo.svg",
     apple: "/logo.svg",
@@ -26,21 +26,21 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "HealthRights",
+    title: "Break Your Silence",
   },
   formatDetection: {
     telephone: false,
   },
   openGraph: {
-    title: "HealthRights - Healthcare Transparency Platform",
+    title: "Break Your Silence - Healthcare Transparency Platform",
     description: "Report hospital malpractices and track healthcare complaints",
     url: "/",
-    siteName: "HealthRights",
+    siteName: "Break Your Silence",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "HealthRights - Healthcare Transparency Platform",
+    title: "Break Your Silence - Healthcare Transparency Platform",
     description: "Report hospital malpractices and track healthcare complaints",
   },
 };
@@ -64,7 +64,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="HealthRights" />
+        <meta name="apple-mobile-web-app-title" content="Break Your Silence" />
         <link rel="apple-touch-icon" href="/logo.svg" />
         <link rel="manifest" href="/manifest.json" />
       </head>

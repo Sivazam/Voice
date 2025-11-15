@@ -58,12 +58,21 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
     setSuccess('');
 
     try {
+      // Get current user from auth store
+      const currentUser = user;
+      if (!currentUser || !currentUser.id) {
+        throw new Error('User not authenticated');
+      }
+
       // Update user profile via API
       const response = await fetch('/api/auth/update-profile', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentUser.id}` // Add user ID to headers
+        },
         body: JSON.stringify({
-          userId: user?.id || '',
+          userId: currentUser.id, // Also include in body
           fullName: formData.fullName.trim(),
           email: formData.email.trim() || null,
           address: formData.address.trim(),

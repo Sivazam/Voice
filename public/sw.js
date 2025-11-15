@@ -93,7 +93,7 @@ self.addEventListener('sync', function(event) {
 
 function doBackgroundSync() {
   // Handle background sync for offline submissions
-  return self.registration.showNotification('HealthRights', {
+  return self.registration.showNotification('Break Your Silence', {
     body: 'Your offline data has been synced!',
     icon: '/logo.svg'
   });
@@ -125,7 +125,7 @@ self.addEventListener('push', function(event) {
   };
 
   event.waitUntil(
-    self.registration.showNotification('HealthRights', options)
+    self.registration.showNotification('Break Your Silence', options)
   );
 });
 

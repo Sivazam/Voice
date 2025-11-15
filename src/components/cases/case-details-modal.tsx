@@ -197,37 +197,37 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-[95vw] h-[85vh] max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="flex flex-col sm:flex-row items-start justify-between space-y-3 sm:space-y-0 pb-4 border-b">
-          <div className="flex flex-col sm:flex-row items-start space-y-2 sm:space-y-0 sm:items-center gap-3">
+      <DialogContent className="max-w-4xl w-[100vw] sm:w-[95vw] h-[100vh] sm:h-[85vh] max-h-[100vh] sm:max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="flex flex-col sm:flex-row items-start justify-between space-y-2 sm:space-y-0 pb-3 sm:pb-4 border-b px-4 sm:px-0 -mx-4 sm:mx-0">
+          <div className="flex flex-col sm:flex-row items-start space-y-1 sm:space-y-0 sm:items-center gap-2 sm:gap-3">
             <div className="flex items-center space-x-2">
               <Building className="h-5 w-5 text-blue-600" />
-              <DialogTitle className="text-lg font-semibold truncate max-w-[200px] sm:max-w-none">
+              <DialogTitle className="text-base sm:text-lg font-semibold truncate max-w-[150px] sm:max-w-[200px]">
                 {case_.hospitalName}
               </DialogTitle>
             </div>
-            <Badge className={`${statusInfo.color} shrink-0 px-3 py-1`}>
+            <Badge className={`${statusInfo.color} shrink-0 px-2 sm:px-3 py-1 text-xs`}>
               <statusInfo.icon className="h-3 w-3 mr-1" />
               <span className="text-xs font-medium">{statusInfo.label}</span>
             </Badge>
           </div>
-          <DialogDescription className="text-xs text-gray-600">
+          <DialogDescription className="text-xs text-gray-600 px-4 sm:px-0 -mx-4 sm:mx-0">
             Case ID: {case_.id.slice(0, 8)}... • Filed on {formatDateTime(case_.submittedAt)}
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 h-[calc(85vh-80px)] px-4 sm:px-6 pb-6">
-          <div className="space-y-4">
+        <ScrollArea className="flex-1 h-[calc(100vh-120px)] sm:h-[calc(85vh-80px)] px-3 sm:px-6 pb-4 sm:pb-6">
+          <div className="space-y-3 sm:space-y-4">
             {/* Patient Information Card */}
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold">
+              <CardHeader className="pb-2 sm:pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-semibold">
                   <User className="h-4 w-4" />
                   Patient Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <CardContent className="pt-0 px-3 sm:px-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Full Name</p>
                     <p className="text-sm font-medium">{case_.patientName}</p>
@@ -250,14 +250,14 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
 
             {/* Hospital Information Card */}
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold">
+              <CardHeader className="pb-2 sm:pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-semibold">
                   <Building className="h-4 w-4" />
                   Hospital Information
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <CardContent className="pt-0 px-3 sm:px-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="sm:col-span-2">
                     <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Hospital Name</p>
                     <p className="text-sm font-medium">{case_.hospitalName}</p>
@@ -284,14 +284,14 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
 
             {/* Treatment Timeline Card */}
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold">
+              <CardHeader className="pb-2 sm:pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-semibold">
                   <Calendar className="h-4 w-4" />
                   Treatment Timeline
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <CardContent className="pt-0 px-3 sm:px-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
                   <div>
                     <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Admission</p>
                     <p className="text-sm font-medium">{formatDate(case_.admissionDate)}</p>
@@ -337,14 +337,14 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
 
             {/* Detailed Description Card */}
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base font-semibold">
+              <CardHeader className="pb-2 sm:pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-semibold">
                   <FileText className="h-4 w-4" />
                   Detailed Description
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="bg-gray-50 rounded-lg p-4">
+              <CardContent className="pt-0 px-3 sm:px-6">
+                <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">
                     {case_.detailedDescription}
                   </p>
@@ -373,13 +373,13 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
                   className="hidden"
                 />
                 
-                <div className="flex flex-col sm:flex-row items-center gap-3 mt-4">
+                <div className="flex flex-col sm:flex-row items-center gap-3 mt-3 sm:mt-4">
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={handleAudioPlay}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 h-8 px-3"
                     >
                       {isPlayingAudio ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                       {isPlayingAudio ? 'Pause' : 'Play'}
@@ -388,14 +388,14 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
                       variant="outline"
                       size="sm"
                       onClick={() => window.open(`/api/proxy/storage?url=${encodeURIComponent(case_.voiceRecordingUrl || '')}`, '_blank')}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 h-8 px-3"
                     >
                       <Download className="h-4 w-4" />
                       Download
                     </Button>
                   </div>
                   
-                  <div className="w-full sm:w-48 mt-4">
+                  <div className="w-full sm:w-48 mt-3 sm:mt-4">
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
                         className="bg-blue-600 h-2 rounded-full transition-all duration-300"
@@ -427,10 +427,10 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 gap-3 sm:gap-4">
                     {case_.attachments.map((attachment, index) => (
-                      <div key={index} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                        <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+                      <div key={index} className="border rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-start gap-3">
                           <div className="flex h-8 w-8 items-center justify-center rounded bg-blue-100 flex-shrink-0">
                             <FileText className="h-4 w-4 text-blue-600" />
                           </div>
@@ -447,9 +447,9 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
                           variant="outline"
                           size="sm"
                           onClick={() => window.open(`/api/proxy/storage?url=${encodeURIComponent(attachment.fileUrl || '')}`, '_blank')}
-                          className="w-full sm:w-auto mt-2"
+                          className="w-full sm:w-auto mt-3"
                         >
-                          <Download className="h-4 w-4" />
+                          <Download className="h-4 w-4 mr-2" />
                           Download
                         </Button>
                       </div>

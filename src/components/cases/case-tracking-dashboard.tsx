@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,6 @@ import {
   Paperclip
 } from 'lucide-react';
 import { Case, CaseStatus, ApiResponse } from '@/types';
-import { CaseDetailsModal } from './case-details-modal';
 
 interface CaseTrackingDashboardProps {
   userId: string;
@@ -42,13 +42,12 @@ const statusIcons = {
 };
 
 export function CaseTrackingDashboard({ userId, refreshTrigger }: CaseTrackingDashboardProps) {
+  const router = useRouter();
   const [cases, setCases] = useState<Case[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<CaseStatus | 'ALL'>('ALL');
-  const [selectedCase, setSelectedCase] = useState<Case | null>(null);
-  const [showCaseDetails, setShowCaseDetails] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0); // Add refresh key
 
   useEffect(() => {
@@ -103,8 +102,7 @@ export function CaseTrackingDashboard({ userId, refreshTrigger }: CaseTrackingDa
   };
 
   const handleViewDetails = (case_: Case) => {
-    setSelectedCase(case_);
-    setShowCaseDetails(true);
+    router.push(`/cases/${case_.id}`);
   };
 
   if (loading) {
@@ -327,15 +325,6 @@ export function CaseTrackingDashboard({ userId, refreshTrigger }: CaseTrackingDa
             );
           })}
         </div>
-      )}
-
-      {/* Case Details Modal */}
-      {selectedCase && (
-        <CaseDetailsModal
-          case_={selectedCase}
-          isOpen={showCaseDetails}
-          onClose={() => setShowCaseDetails(false)}
-        />
       )}
     </div>
   );

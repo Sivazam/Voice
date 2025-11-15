@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Shield, Users, FileText, Search, Bell, MapPin, CheckCircle, AlertCircle, Clock, User, LogOut, Settings, TrendingUp, Eye, Phone, Mail, ArrowRight, Star, Zap, Globe, Lock, Heart } from 'lucide-react';
+import { Shield, Users, FileText, Search, Bell, MapPin, CheckCircle, AlertCircle, Clock, User, LogOut, Settings, TrendingUp, Eye, Phone, Mail, ArrowRight, Star, Zap, Globe, Lock, Heart, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { LoginModal } from '@/components/auth/login-modal';
 import { ProfileCompletionModal } from '@/components/auth/profile-completion-modal';
@@ -26,6 +26,7 @@ export default React.memo(function Home() {
   const [pendingUserId, setPendingUserId] = useState('');
   const [pendingPhoneNumber, setPendingPhoneNumber] = useState('');
   const [refreshTrigger, setRefreshTrigger] = useState(0); // Add refresh trigger
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Add mobile menu state
 
   const { user, isAuthenticated, login, logout } = useAuthStore();
 
@@ -124,14 +125,12 @@ export default React.memo(function Home() {
               <div className="flex items-center space-x-2">
                 <Shield className="h-8 w-8 text-blue-600" />
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
-                  HealthRights
+                  Break Your Silence
                 </h1>
               </div>
-              <Badge className="bg-blue-100 text-blue-800 text-xs px-2 py-1">
-                Healthcare Transparency Platform
-              </Badge>
             </div>
             
+            {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-6">
               <button
                 onClick={() => setActiveTab('home')}
@@ -186,53 +185,124 @@ export default React.memo(function Home() {
                 About
               </button>
             </nav>
-            
-            <div className="flex items-center space-x-3">
-              {isAuthenticated && user ? (
-                <div className="flex items-center space-x-3">
-                  <div className="hidden sm:block text-right">
-                    <div className="text-sm font-medium text-gray-900">{user.fullName}</div>
-                    <div className="text-xs text-gray-500">{user.role}</div>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setShowProfileSettings(true)}
-                    className="hover:bg-blue-50"
-                  >
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleLogout}
-                    className="hover:bg-red-50 text-red-600"
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setShowLoginModal(true)}
-                    className="hover:bg-blue-50"
-                  >
-                    Sign In
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    onClick={handleFileCase}
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    File a Case
-                  </Button>
-                </>
-              )}
+
+            {/* Mobile Menu Button */}
+            <div className="md:hidden">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="hover:bg-gray-100"
+              >
+                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
             </div>
           </div>
+
+          {/* Mobile Navigation Menu */}
+          {isMobileMenuOpen && (
+            <div className="md:hidden border-t border-blue-100 bg-white shadow-lg">
+              <div className="container mx-auto px-4 py-4 space-y-2">
+                <button
+                  onClick={() => {
+                    setActiveTab('home');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${
+                    activeTab === 'home' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
+                  }`}
+                >
+                  Home
+                </button>
+                {isAuthenticated && (
+                  <button
+                    onClick={() => {
+                      setActiveTab('dashboard');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${
+                      activeTab === 'dashboard' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
+                    }`}
+                  >
+                    My Cases
+                  </button>
+                )}
+                {isAuthenticated && (user?.role === 'ADMIN' || user?.role === 'SUPERADMIN') && (
+                  <button
+                    onClick={() => {
+                      setActiveTab('admin');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${
+                      activeTab === 'admin' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
+                    }`}
+                  >
+                    Admin Panel
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setActiveTab('public-cases');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${
+                    activeTab === 'public-cases' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
+                  }`}
+                >
+                  Public Cases (Coming Soon)
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab('features');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${
+                    activeTab === 'features' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
+                  }`}
+                >
+                  Features
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab('about');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${
+                    activeTab === 'about' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
+                  }`}
+                >
+                  About
+                </button>
+                {isAuthenticated && user && (
+                  <div className="border-t border-gray-200 pt-2 mt-2">
+                    <div className="text-left font-medium text-gray-500 mb-2 px-3">
+                      Account Actions
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowProfileSettings(true);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 text-gray-600 hover:text-blue-600"
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      Profile Settings
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
@@ -435,7 +505,7 @@ export default React.memo(function Home() {
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                About HealthRights
+                About Break Your Silence
               </h2>
               <p className="text-xl text-gray-600">
                 Empowering patients with transparency and accountability in healthcare
@@ -527,10 +597,10 @@ export default React.memo(function Home() {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-3 mb-4 md:mb-0">
               <Shield className="h-6 w-6 text-blue-600" />
-              <span className="text-lg font-semibold text-gray-900">HealthRights</span>
+              <span className="text-lg font-semibold text-gray-900">Break Your Silence</span>
             </div>
             <div className="text-sm text-gray-600 text-center md:text-right">
-              © 2024 HealthRights. All rights reserved. | 
+              © 2024 Break Your Silence. All rights reserved. | 
               <Link href="#" className="hover:text-blue-600 ml-1">Privacy Policy</Link> | 
               <Link href="#" className="hover:text-blue-600 ml-1">Terms of Service</Link>
             </div>
