@@ -204,7 +204,14 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Request microphone permission exclusively
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
@@ -244,7 +251,18 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
       }, 1000);
 
     } catch (error) {
-      setError('Unable to access microphone. Please check permissions.');
+      console.error('Microphone access error:', error);
+      if (error instanceof DOMException) {
+        if (error.name === 'NotAllowedError') {
+          setError('Microphone access denied. Please allow microphone access in your browser settings to record your statement.');
+        } else if (error.name === 'NotFoundError') {
+          setError('No microphone found. Please connect a microphone to record your statement.');
+        } else {
+          setError(`Microphone error: ${error.message}. Please check your device settings.`);
+        }
+      } else {
+        setError('Unable to access microphone. Please check permissions and ensure a microphone is connected.');
+      }
     }
   };
 
@@ -369,10 +387,6 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
       case 4:
         if (formData.issueCategories.length === 0) {
           setError('Please select at least one issue category');
-          return false;
-        }
-        if (formData.detailedDescription.length < 100) {
-          setError('Please provide a detailed description (minimum 100 characters)');
           return false;
         }
         if (!recordedAudio) {
@@ -890,17 +904,17 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
             </div>
 
             <div className="space-y-4">
-              <Label htmlFor="detailedDescription">Detailed Description *</Label>
+              <Label htmlFor="detailedDescription">Detailed Description</Label>
               <Textarea
                 id="detailedDescription"
                 value={formData.detailedDescription}
                 onChange={(e) => updateFormData('detailedDescription', e.target.value)}
-                placeholder="Please provide a detailed description of your complaint (minimum 100 characters)..."
+                placeholder="Please provide a detailed description of your complaint (optional but recommended)..."
                 rows={6}
                 className="focus:ring-blue-500"
               />
               <div className="text-sm text-gray-500 mt-1">
-                {formData.detailedDescription.length}/100 characters
+                {formData.detailedDescription.length} characters (optional)
               </div>
             </div>
 
@@ -979,7 +993,7 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
                 5
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mt-3">Location & Evidence (Required) - {new Date().toLocaleTimeString()}</h3>
-              <p className="text-red-600 font-medium">Both location and documents are required to submit your case</p>
+              <p className="text-gray-600">Voice recording, documents, and location are required to submit your case</p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
