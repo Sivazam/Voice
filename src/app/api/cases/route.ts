@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     } = formData;
 
     // Validate required fields
-    if (!userId || !patientName || !patientAge || !patientGender || !hospitalName || !hospitalAddress || !hospitalState || !department || !admissionDate || !detailedDescription) {
+    if (!userId || !patientName || !patientAge || !patientGender || !hospitalName || !hospitalAddress || !hospitalState || !department || !admissionDate) {
       console.error('❌ Missing required fields:', {
         userId: !!userId,
         patientName: !!patientName,
@@ -51,8 +51,7 @@ export async function POST(request: NextRequest) {
         hospitalAddress: !!hospitalAddress,
         hospitalState: !!hospitalState,
         department: !!department,
-        admissionDate: !!admissionDate,
-        detailedDescription: !!detailedDescription
+        admissionDate: !!admissionDate
       });
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
@@ -65,6 +64,15 @@ export async function POST(request: NextRequest) {
       console.error('❌ Missing relationshipToPatient');
       return NextResponse.json(
         { success: false, error: 'Relationship to patient is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate voice recording is required
+    if (!voiceRecordingUrl) {
+      console.error('❌ Missing voice recording');
+      return NextResponse.json(
+        { success: false, error: 'Voice recording is required' },
         { status: 400 }
       );
     }

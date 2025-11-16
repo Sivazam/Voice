@@ -204,31 +204,85 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
 
   const startRecording = async () => {
     try {
-      // Check for iOS Safari compatibility
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      const isSafari = /Safari/.test(navigator.userAgent);
+      // Enhanced device detection for better compatibility
+      const userAgent = navigator.userAgent;
+      const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+      const isAndroid = /Android/.test(userAgent);
+      const isSafari = /Safari/.test(userAgent) && !/Chrome|CriOS|FxiOS|EdgA/.test(userAgent);
+      const isChrome = /Chrome/.test(userAgent) && !/EdgA/.test(userAgent);
+      const isFirefox = /Firefox/.test(userAgent);
+      const isEdge = /EdgA/.test(userAgent);
+      
+      console.log('🔍 Device detection:', {
+        userAgent,
+        isIOS,
+        isAndroid,
+        isSafari,
+        isChrome,
+        isFirefox,
+        isEdge
+      });
+      
+      // Show appropriate permission message based on device
+      if (isIOS && isSafari) {
+        setError('Requesting microphone access. Please allow when prompted.');
+      } else if (isAndroid) {
+        setError('Requesting microphone access on Android. Please allow when prompted.');
+      } else {
+        setError('Requesting microphone access. Please allow when prompted.');
+      }
+      
+      // For iOS Safari, show a helpful message before requesting permission
+      if (isIOS && isSafari) {
+        setError('Requesting microphone access. Please allow when prompted.');
+        
+        // Try to trigger permission dialog more explicitly on iOS
+        // First check if we already have permission
+        const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+        
+        if (permissionStatus.state === 'denied') {
+          setError('Microphone access denied on iOS Safari. Go to Settings > Safari > Microphone > Allow, then refresh the page.');
+          return;
+        }
+        
+        if (permissionStatus.state === 'prompt') {
+          setError('Please tap "Allow" when Safari asks for microphone access to record your voice statement.');
+        }
+      }
       
       // Request microphone permission with iOS-specific constraints
       let stream;
-      if (isIOS && isSafari) {
-        // iOS Safari requires specific handling
-        stream = await navigator.mediaDevices.getUserMedia({ 
-          audio: {
-            echoCancellation: false,  // iOS Safari may not support this
-            noiseSuppression: false,  // iOS Safari may not support this
-            autoGainControl: false,  // iOS Safari may not support this
-            sampleRate: 44100,  // Standard sample rate for iOS compatibility
+      try {
+        if (isIOS && isSafari) {
+          // iOS Safari requires specific handling
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+              echoCancellation: false,  // iOS Safari may not support this
+              noiseSuppression: false,  // iOS Safari may not support this
+              autoGainControl: false,  // iOS Safari may not support this
+              sampleRate: 44100,  // Standard sample rate for iOS compatibility
+            }
+          });
+        } else {
+          // Standard browsers
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            }
+          });
+        }
+      } catch (permissionError) {
+        if (permissionError instanceof DOMException && permissionError.name === 'NotAllowedError') {
+          if (isIOS && isSafari) {
+            setError('Microphone access denied. On iOS Safari: Go to Settings > Safari > Microphone > Allow, then refresh this page.');
+          } else {
+            setError('Microphone access denied. Please allow microphone access in your browser settings and refresh the page.');
           }
-        });
-      } else {
-        // Standard browsers
-        stream = await navigator.mediaDevices.getUserMedia({ 
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          }
-        });
+          return;
+        }
+        throw permissionError;
       }
       
       // Check if MediaRecorder is supported
@@ -238,6 +292,8 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
         } else {
           setError('Voice recording is not supported on this browser. Please try using Chrome, Firefox, or Safari.');
         }
+        // Stop the stream if MediaRecorder is not available
+        stream.getTracks().forEach(track => track.stop());
         return;
       }
       
@@ -287,11 +343,15 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
         
         // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
+        
+        // Clear any previous error messages on successful recording
+        setError('');
       };
 
       mediaRecorder.start();
       setIsRecording(true);
       setRecordingTime(0);
+      setError(''); // Clear any errors when recording starts successfully
 
       // Start recording timer with 5-minute limit
       recordingIntervalRef.current = setInterval(() => {
@@ -306,10 +366,13 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
 
     } catch (error) {
       console.error('Microphone access error:', error);
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome|CriOS|FxiOS/.test(navigator.userAgent);
+      
       if (error instanceof DOMException) {
         if (error.name === 'NotAllowedError') {
           if (isIOS && isSafari) {
-            setError('Microphone access denied on iOS Safari. Go to Settings > Safari & Privacy > Microphone > Allow.');
+            setError('Microphone access denied on iOS Safari. Go to Settings > Safari > Microphone > Allow, then refresh this page.');
           } else {
             setError('Microphone access denied. Please allow microphone access in your browser settings to record your statement.');
           }
@@ -325,9 +388,8 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
           setError(`Microphone error: ${error.message}. Please check your device settings.`);
         }
       } else {
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        if (isIOS) {
-          setError('Unable to access microphone on iOS. Please ensure you are using Safari and have granted microphone permission in Settings.');
+        if (isIOS && isSafari) {
+          setError('Unable to access microphone on iOS Safari. Please ensure you have granted microphone permission in Settings > Safari > Microphone.');
         } else {
           setError('Unable to access microphone. Please check permissions and ensure a microphone is connected.');
         }
@@ -973,23 +1035,20 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
             </div>
 
             <div className="space-y-4">
-              <Label htmlFor="detailedDescription">Detailed Description</Label>
-              <Textarea
-                id="detailedDescription"
-                value={formData.detailedDescription}
-                onChange={(e) => updateFormData('detailedDescription', e.target.value)}
-                placeholder="Please provide a detailed description of your complaint (optional but recommended)..."
-                rows={6}
-                className="focus:ring-blue-500"
-              />
-              <div className="text-sm text-gray-500 mt-1">
-                {formData.detailedDescription.length} characters (optional)
+              <div className="flex items-center space-x-2">
+                <Label>Voice Recording *</Label>
+                <Badge variant="destructive" className="text-xs">Required</Badge>
               </div>
-            </div>
-
-            <div className="space-y-4">
-              <Label>Voice Recording *</Label>
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <div className="mb-4">
+                  <p className="text-sm text-blue-800 font-medium mb-2">
+                    📱 Voice recording is required for your complaint
+                  </p>
+                  <p className="text-xs text-blue-700">
+                    iOS Safari users: Please allow microphone access when prompted. If denied, go to Settings {'>'} Safari {'>'} Microphone {'>'} Allow
+                  </p>
+                </div>
+                
                 {recordedAudio ? (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -1026,29 +1085,50 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
                 ) : (
                   <div className="text-center">
                     <div className="mb-4">
-                      <Mic className="h-12 w-12 text-red-600 mx-auto mb-2" />
+                      <Mic className="h-12 w-12 text-red-600 mx-auto mb-2 animate-pulse" />
                     </div>
                     <Button
                       onClick={isRecording ? stopRecording : startRecording}
-                      className={`w-full ${isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'} text-white`}
+                      size="lg"
+                      className={`w-full ${isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'} text-white font-semibold py-6 text-lg`}
                     >
                       {isRecording ? (
                         <>
-                          <Square className="h-4 w-4 mr-2" />
+                          <Square className="h-5 w-5 mr-2" />
                           Stop Recording ({formatDuration(recordingTime)})
                         </>
                       ) : (
                         <>
-                          <Mic className="h-4 w-4 mr-2" />
-                          Start Recording
+                          <Mic className="h-5 w-5 mr-2" />
+                          Start Voice Recording (Required)
                         </>
                       )}
                     </Button>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Maximum recording time: 5 minutes
-                    </p>
+                    <div className="mt-3 space-y-1">
+                      <p className="text-sm text-gray-600 font-medium">
+                        📱 Tap the button above to record your voice statement
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Maximum recording time: 5 minutes
+                      </p>
+                    </div>
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Label htmlFor="detailedDescription">Detailed Description (Optional)</Label>
+              <Textarea
+                id="detailedDescription"
+                value={formData.detailedDescription}
+                onChange={(e) => updateFormData('detailedDescription', e.target.value)}
+                placeholder="Please provide a detailed description of your complaint (optional)..."
+                rows={6}
+                className="focus:ring-blue-500"
+              />
+              <div className="text-sm text-gray-500 mt-1">
+                {formData.detailedDescription.length} characters (optional)
               </div>
             </div>
           </div>
