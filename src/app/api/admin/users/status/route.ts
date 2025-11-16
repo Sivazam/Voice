@@ -24,7 +24,7 @@ export async function PATCH(request: NextRequest) {
 
     // Get the admin making the change
     const adminUser = await FirestoreService.getUser(changedBy);
-    if (!adminUser || adminUser.role !== 'SUPERADMIN') {
+    if (!adminUser || (adminUser as any).role !== 'SUPERADMIN') {
       return NextResponse.json(
         { success: false, error: 'Unauthorized: Only Super Admins can change user status' },
         { status: 403 }
@@ -32,7 +32,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Prevent deactivating Super Admins
-    if (user.role === 'SUPERADMIN' && !isActive) {
+    if ((user as any).role === 'SUPERADMIN' && !isActive) {
       return NextResponse.json(
         { success: false, error: 'Cannot deactivate Super Admin accounts' },
         { status: 403 }

@@ -164,7 +164,7 @@ export default function CaseReviewPage() {
       const data: ApiResponse<Case> = await response.json();
       console.log('🔍 Approval response data:', data);
 
-      if (data.success) {
+      if (data.success && data.data) {
         setCase(data.data);
         setReviewComments('');
         // Redirect back to admin panel
@@ -212,7 +212,7 @@ export default function CaseReviewPage() {
 
       const data: ApiResponse<Case> = await response.json();
 
-      if (data.success) {
+      if (data.success && data.data) {
         setCase(data.data);
         setReviewComments('');
         setRejectionReason('');

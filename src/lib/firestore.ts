@@ -109,7 +109,14 @@ export class FirestoreService {
   static async getUser(userId: string) {
     try {
       const userDoc = await getDoc(doc(db, 'users', userId));
-      return userDoc.exists() ? { id: userDoc.id, ...userDoc.data() } : null;
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        return { 
+          id: userDoc.id, 
+          ...userData
+        };
+      }
+      return null;
     } catch (error) {
       console.error('Error getting user:', error);
       throw error;
@@ -273,7 +280,7 @@ export class FirestoreService {
             ...caseData,
             user: userDoc.exists() ? { 
               id: userDoc.id, 
-              fullName: userDoc.data().fullName,
+              fullName: (userDoc.data() as any).fullName || 'Unknown User',
               phoneNumber: userDoc.data().phoneNumber 
             } : null,
             issueCategories: categoriesSnapshot.docs.map(cat => ({ id: cat.id, ...cat.data() })),
@@ -287,7 +294,7 @@ export class FirestoreService {
 
       // Filter by status on client side if specified
       if (status) {
-        allCases = allCases.filter(case_ => case_.status === status);
+        allCases = allCases.filter(case_ => (case_ as any).status === status);
       }
 
       return allCases;

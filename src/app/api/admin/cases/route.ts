@@ -80,9 +80,9 @@ export async function POST(request: NextRequest) {
         const reviewer = await FirestoreService.getUser(deleteReviewedBy);
         console.log('🔍 Delete reviewer user found:', {
           id: reviewer?.id,
-          fullName: reviewer?.fullName,
-          role: reviewer?.role,
-          isActive: reviewer?.isActive
+          fullName: (reviewer as any)?.fullName,
+          role: (reviewer as any)?.role,
+          isActive: (reviewer as any)?.isActive
         });
         
         if (!reviewer) {
@@ -93,15 +93,15 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        if (reviewer.role !== UserRole.ADMIN && reviewer.role !== UserRole.SUPERADMIN) {
+        if ((reviewer as any).role !== UserRole.ADMIN && (reviewer as any).role !== UserRole.SUPERADMIN) {
           console.error('❌ Insufficient permissions for delete:', {
-            reviewerRole: reviewer.role,
+            reviewerRole: (reviewer as any).role,
             requiredRoles: [UserRole.ADMIN, UserRole.SUPERADMIN]
           });
           return NextResponse.json(
             { 
               success: false, 
-              error: `Admin access required. Current role: ${reviewer.role}. Required: ADMIN or SUPERADMIN` 
+              error: `Admin access required. Current role: ${(reviewer as any).role}. Required: ADMIN or SUPERADMIN` 
             },
             { status: 403 }
           );
@@ -135,8 +135,8 @@ export async function POST(request: NextRequest) {
         });
         return NextResponse.json(
           { success: false, error: 'Case ID, status, and reviewer ID are required' },
-          { status: 400 },
-          {
+          { 
+            status: 400,
             headers: {
               'Access-Control-Allow-Origin': origin || '*',
               'Access-Control-Allow-Methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
@@ -150,17 +150,17 @@ export async function POST(request: NextRequest) {
       const reviewer = await FirestoreService.getUser(reviewedBy);
       console.log('🔍 Reviewer user found:', {
         id: reviewer?.id,
-        fullName: reviewer?.fullName,
-        role: reviewer?.role,
-        isActive: reviewer?.isActive
+        fullName: (reviewer as any)?.fullName,
+        role: (reviewer as any)?.role,
+        isActive: (reviewer as any)?.isActive
       });
       
       if (!reviewer) {
         console.error('❌ Reviewer not found:', reviewedBy);
         return NextResponse.json(
           { success: false, error: `Reviewer not found: ${reviewedBy}` },
-          { status: 404 },
-          {
+          { 
+            status: 404,
             headers: {
               'Access-Control-Allow-Origin': origin || '*',
               'Access-Control-Allow-Methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
@@ -170,18 +170,18 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (reviewer.role !== UserRole.ADMIN && reviewer.role !== UserRole.SUPERADMIN) {
+      if ((reviewer as any).role !== UserRole.ADMIN && (reviewer as any).role !== UserRole.SUPERADMIN) {
         console.error('❌ Insufficient permissions:', {
-          reviewerRole: reviewer.role,
+          reviewerRole: (reviewer as any).role,
           requiredRoles: [UserRole.ADMIN, UserRole.SUPERADMIN]
         });
         return NextResponse.json(
           { 
             success: false, 
-            error: `Admin access required. Current role: ${reviewer.role}. Required: ADMIN or SUPERADMIN` 
+            error: `Admin access required. Current role: ${(reviewer as any).role}. Required: ADMIN or SUPERADMIN` 
           },
-          { status: 403 },
-          {
+          { 
+            status: 403,
             headers: {
               'Access-Control-Allow-Origin': origin || '*',
               'Access-Control-Allow-Methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
@@ -233,17 +233,17 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('🔥 POST approval error:', error);
-    console.error('🔥 Error stack:', error.stack);
+    console.error('🔥 Error stack:', (error as Error).stack);
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 },
-      {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        { success: false, error: 'Internal server error' },
+        { 
+          status: 500,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          }
         }
-      }
-    );
+      );
   }
 }

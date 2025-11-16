@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
   try {
     // Check if any super admin exists
     const allUsers = await FirestoreService.getAllUsers();
-    const superAdminExists = allUsers.some(user => user.role === 'SUPERADMIN');
+    const superAdminExists = allUsers.some(user => (user as any).role === 'SUPERADMIN');
 
     return NextResponse.json({
       success: true,
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     // Check if super admin already exists
     const allUsers = await FirestoreService.getAllUsers();
-    const superAdminExists = allUsers.some(user => user.role === 'SUPERADMIN');
+    const superAdminExists = allUsers.some(user => (user as any).role === 'SUPERADMIN');
 
     if (superAdminExists) {
       return NextResponse.json(
