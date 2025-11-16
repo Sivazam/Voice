@@ -249,7 +249,6 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
         if (permissionStatus.state === 'prompt') {
           setError('Please tap "Allow" when Safari asks for microphone access to record your voice statement.');
         }
-      }
       
       // Request microphone permission with iOS-specific constraints
       let stream;
