@@ -375,11 +375,15 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
       // Detect supported MIME types for this browser
       const supportedTypes = [
         'audio/webm;codecs=opus',
+        'audio/webm;codecs=vorbis',
         'audio/webm',
         'audio/mp4',
         'audio/mp4;codecs=mp4a',
         'audio/mpeg',
-        'audio/wav'
+        'audio/wav',
+        'audio/ogg;codecs=opus',
+        'audio/ogg',
+        'audio/x-m4a'
       ];
       
       // Find the first supported MIME type
@@ -390,7 +394,7 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
         }
       }
       
-      console.log('🎤 Using MIME type:', actualMimeType, 'for', { isIOS, isSafari });
+      console.log('🎤 Using MIME type:', actualMimeType, 'for', { isIOS, isAndroid, isSafari });
       
       try {
         mediaRecorder = new MediaRecorder(stream, {
@@ -451,6 +455,11 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
           audioFileName = `recording-${Date.now()}.wav`;
         } else if (finalMimeType.includes('m4a')) {
           audioFileName = `recording-${Date.now()}.m4a`;
+        } else if (finalMimeType.includes('webm')) {
+          // For WebM files, prefer .webm extension
+          audioFileName = `recording-${Date.now()}.webm`;
+        } else if (finalMimeType.includes('ogg')) {
+          audioFileName = `recording-${Date.now()}.ogg`;
         } else {
           // Default to webm for other formats
           audioFileName = `recording-${Date.now()}.webm`;
