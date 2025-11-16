@@ -299,11 +299,34 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
       
       // Create media recorder with format fallback for iOS
       let mediaRecorder;
+      let actualMimeType = 'audio/webm'; // default
+      
+      // Detect supported MIME types for this browser
+      const supportedTypes = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+        'audio/mp4;codecs=mp4a',
+        'audio/mpeg',
+        'audio/wav'
+      ];
+      
+      // Find the first supported MIME type
+      for (const type of supportedTypes) {
+        if (MediaRecorder.isTypeSupported(type)) {
+          actualMimeType = type;
+          break;
+        }
+      }
+      
+      console.log('🎤 Using MIME type:', actualMimeType, 'for', { isIOS, isSafari });
+      
       try {
         mediaRecorder = new MediaRecorder(stream, {
-          mimeType: isIOS && isSafari ? 'audio/mp4' : 'audio/webm'
+          mimeType: actualMimeType
         });
       } catch (e) {
+        console.warn('⚠️ Failed to create MediaRecorder with MIME type, using default:', e);
         // Fallback for browsers that don't support mimeType
         mediaRecorder = new MediaRecorder(stream);
       }
@@ -321,19 +344,68 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
         const audioChunks = audioChunksRef.current;
         audioChunksRef.current = [];
         
-        // Create appropriate audio format for iOS compatibility
+        // Create appropriate audio format based on actual MIME type used
         let audioBlob;
         let audioFileName;
         
+        // Use the actual MIME type that was detected and used
+        let finalMimeType = actualMimeType || 'audio/webm';
+        
+        // iOS Safari special handling - sometimes produces unexpected MIME types
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome|CriOS|FxiOS/.test(navigator.userAgent);
+        
         if (isIOS && isSafari) {
-          // iOS Safari prefers mp4 format
-          audioBlob = new Blob(audioChunks, { type: 'audio/mp4' });
+          // For iOS Safari, try to determine the actual MIME type from chunks
+          if (audioChunks.length > 0 && audioChunks[0] instanceof Blob) {
+            const chunkType = audioChunks[0].type;
+            if (chunkType && chunkType.startsWith('audio/')) {
+              finalMimeType = chunkType;
+              console.log('🎤 iOS Safari detected chunk MIME type:', chunkType);
+            }
+          }
+          
+          // If still no valid MIME type, try common iOS formats
+          if (!finalMimeType || !finalMimeType.startsWith('audio/')) {
+            finalMimeType = 'audio/mp4'; // iOS Safari commonly supports this
+          }
+        }
+        
+        // Determine file extension based on MIME type
+        if (finalMimeType.includes('mp4')) {
           audioFileName = `recording-${Date.now()}.mp4`;
+        } else if (finalMimeType.includes('mpeg') || finalMimeType.includes('mp3')) {
+          audioFileName = `recording-${Date.now()}.mp3`;
+        } else if (finalMimeType.includes('wav')) {
+          audioFileName = `recording-${Date.now()}.wav`;
+        } else if (finalMimeType.includes('m4a')) {
+          audioFileName = `recording-${Date.now()}.m4a`;
         } else {
-          // Standard browsers use webm
-          audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          // Default to webm for other formats
           audioFileName = `recording-${Date.now()}.webm`;
         }
+        
+        // Create blob with the detected MIME type
+        try {
+          audioBlob = new Blob(audioChunks, { type: finalMimeType });
+        } catch (blobError) {
+          console.warn('⚠️ Failed to create blob with MIME type, trying without type:', blobError);
+          // Fallback: create blob without explicit type
+          audioBlob = new Blob(audioChunks);
+          // Update finalMimeType to match what the browser actually created
+          if (audioBlob.type) {
+            finalMimeType = audioBlob.type;
+          }
+        }
+        
+        console.log('🎵 Created audio blob:', {
+          mimeType: finalMimeType,
+          fileName: audioFileName,
+          blobSize: audioBlob.size,
+          chunksCount: audioChunks.length,
+          isIOS,
+          isSafari
+        });
         
         const audioFile = new File([audioBlob], audioFileName, { type: audioBlob.type });
         const url = URL.createObjectURL(audioFile);
@@ -532,9 +604,32 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
           if (uploadData.success) {
             voiceRecordingUrl = uploadData.data.fileUrl;
             voiceRecordingDuration = recordingTime;
+            console.log('✅ Voice recording uploaded successfully:', {
+              fileName: uploadData.data.fileName,
+              fileType: uploadData.data.fileType,
+              fileSize: uploadData.data.fileSize
+            });
           } else {
-            console.error('Voice upload failed:', uploadData.error);
-            setError('Failed to upload voice recording: ' + (uploadData.error || 'Unknown error'));
+            console.error('❌ Voice upload failed:', uploadData.error);
+            console.error('📋 Audio file details:', {
+              fileName: recordedAudio.name,
+              fileType: recordedAudio.type,
+              fileSize: recordedAudio.size
+            });
+            
+            // Provide more specific error messages for iOS Safari
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome|CriOS|FxiOS/.test(navigator.userAgent);
+            
+            if (isIOS && isSafari) {
+              if (uploadData.error?.includes('File type not allowed')) {
+                setError('iOS Safari audio format not supported. Please try recording again or use a different browser.');
+              } else {
+                setError('Failed to upload voice recording on iOS Safari: ' + (uploadData.error || 'Unknown error'));
+              }
+            } else {
+              setError('Failed to upload voice recording: ' + (uploadData.error || 'Unknown error'));
+            }
             setLoading(false);
             return;
           }
@@ -902,7 +997,8 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
                     📱 Voice recording is required for your complaint
                   </p>
                   <p className="text-xs text-blue-700">
-                    iOS Safari users: Please allow microphone access when prompted. If denied, go to Settings {'>'} Safari {'>'} Microphone {'>'} Allow
+                    iOS Safari users: Please allow microphone access when prompted. If denied, go to Settings {'>'} Safari {'>'} Microphone {'>'} Allow. 
+                    If you encounter upload issues, try recording again or use Chrome/Firefox for better compatibility.
                   </p>
                 </div>
                 

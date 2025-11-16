@@ -47,10 +47,51 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf', 'audio/webm', 'audio/ogg', 'audio/wav'];
-    if (!allowedTypes.includes(file.type)) {
+    const allowedTypes = [
+      'image/jpeg', 
+      'image/png', 
+      'image/jpg', 
+      'application/pdf', 
+      'audio/webm', 
+      'audio/ogg', 
+      'audio/wav',
+      'audio/mp4',
+      'audio/mpeg',
+      'audio/mp3',
+      'audio/x-m4a',
+      'audio/mp4a-latm',
+      'audio/3gpp',
+      'audio/3gpp2'
+    ];
+    
+    // Special handling for iOS Safari - sometimes reports generic MIME types
+    const isIOS = request.headers.get('user-agent')?.includes('iPhone') || 
+                   request.headers.get('user-agent')?.includes('iPad') || 
+                   request.headers.get('user-agent')?.includes('iPod');
+    
+    let isValidType = allowedTypes.includes(file.type);
+    
+    // For iOS Safari, also accept empty or generic MIME types for audio files
+    if (isIOS && file.name && (
+        file.name.endsWith('.mp4') || 
+        file.name.endsWith('.m4a') || 
+        file.name.endsWith('.wav') || 
+        file.name.endsWith('.mp3')
+    )) {
+      isValidType = true;
+      console.log('🍎 iOS Safari audio file accepted by filename:', file.name);
+    }
+    
+    if (!isValidType) {
+      console.error('❌ File type validation failed:', {
+        fileType: file.type,
+        fileName: file.name,
+        fileSize: file.size,
+        isIOS,
+        allowedTypes
+      });
       return NextResponse.json(
-        { success: false, error: 'File type not allowed' },
+        { success: false, error: `File type not allowed: ${file.type || 'unknown'}` },
         { status: 400 }
       );
     }
