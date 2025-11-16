@@ -448,7 +448,7 @@ export default function CaseReviewPage() {
             </Card>
 
             {/* Admin Actions Card */}
-            {case_.status === 'PENDING' && (
+            {case_.status === 'PENDING' && user && (user.role === 'ADMIN' || user.role === 'SUPERADMIN') && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -506,6 +506,28 @@ export default function CaseReviewPage() {
                       <ThumbsUp className="h-4 w-4 mr-2" />
                       {processingAction ? 'Approving...' : 'Approve'}
                     </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Access Denied Message for Regular Users */}
+            {case_.status === 'PENDING' && user && user.role === 'USER' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                    Access Restricted
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-4">
+                    <p className="text-sm text-gray-600 mb-2">
+                      This case is pending review by administrators.
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Only administrators can approve or reject cases.
+                    </p>
                   </div>
                 </CardContent>
               </Card>
