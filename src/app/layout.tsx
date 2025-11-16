@@ -19,8 +19,10 @@ export const metadata: Metadata = {
   keywords: ["healthcare", "hospital", "malpractice", "patient rights", "transparency", "complaints", "medical"],
   authors: [{ name: "Break Your Silence Team" }],
   icons: {
-    icon: "/logo.svg",
-    apple: "/logo.svg",
+    icon: [
+      { rel: 'icon', type: 'image/png', sizes: '32x32', url: '/favicon.png' }
+    ],
+    apple: '/favicon.png',
   },
   manifest: "/manifest.json",
   appleWebApp: {
@@ -65,7 +67,9 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Break Your Silence" />
-        <link rel="apple-touch-icon" href="/logo.svg" />
+        <link rel="apple-touch-icon" href="/favicon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+        <link rel="shortcut icon" href="/favicon.png" />
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body

@@ -146,9 +146,9 @@ export default React.memo(function Home() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-2">
-                <Shield className="h-8 w-8 text-blue-600" />
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+              <div className="flex items-center space-x-2 group cursor-pointer" onClick={() => setActiveTab('home')}>
+                <Shield className="h-8 w-8 text-blue-600 transition-all duration-300 group-hover:scale-110 group-hover:text-blue-700" />
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent group-hover:from-blue-700 group-hover:to-blue-900 transition-all duration-300">
                   Break Your Silence
                 </h1>
               </div>
@@ -379,7 +379,7 @@ export default React.memo(function Home() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
               <Button 
                 size="lg" 
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-xl px-8 py-4 text-lg"
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-xl px-8 py-4 text-lg font-medium transition-all duration-300 hover:shadow-2xl hover:scale-105"
                 onClick={handleFileCase}
               >
                 <FileText className="h-5 w-5 mr-3" />
@@ -387,9 +387,9 @@ export default React.memo(function Home() {
               </Button>
               <Button 
                 variant="outline" 
-                size="sm" 
-                onClick={() => setShowPublicCases(true)}
-                className="hover:bg-blue-50"
+                size="lg" 
+                onClick={() => setActiveTab('public-cases')}
+                className="hover:bg-blue-50 border-blue-200 text-blue-600 hover:text-blue-700 hover:border-blue-300 px-8 py-4 text-lg font-medium transition-all duration-300 hover:shadow-lg hover:scale-105"
               >
                 <Search className="h-5 w-5 mr-3" />
                 Browse Public Cases
@@ -465,7 +465,7 @@ export default React.memo(function Home() {
           </div>
           
           <div className="mb-6">
-            <Button onClick={handleFileCase} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg">
+            <Button onClick={handleFileCase} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg px-6 py-3 font-medium transition-all duration-300 hover:shadow-xl hover:scale-105">
               <FileText className="h-4 w-4 mr-2" />
               File New Case
             </Button>
@@ -624,7 +624,7 @@ export default React.memo(function Home() {
               size="lg" 
               variant="secondary"
               onClick={handleFileCase}
-              className="bg-white text-blue-600 hover:bg-blue-50 border-2 border-white shadow-lg px-8 py-4 text-lg"
+              className="bg-white text-blue-600 hover:bg-blue-50 border-2 border-white shadow-lg px-8 py-4 text-lg font-medium transition-all duration-300 hover:shadow-xl"
             >
               Get Started Now
               <ArrowRight className="h-5 w-5 ml-2" />
@@ -632,7 +632,7 @@ export default React.memo(function Home() {
             <Button 
               size="lg" 
               variant="outline" 
-              className="border-2 border-blue-300 text-white hover:bg-blue-700 px-8 py-4 text-lg"
+              className="border-2 border-white bg-white/10 backdrop-blur-sm text-white hover:bg-white hover:text-blue-700 px-8 py-4 text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl"
             >
               Learn More
             </Button>

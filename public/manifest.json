@@ -12,9 +12,9 @@
   "categories": ["health", "medical", "social"],
   "icons": [
     {
-      "src": "/logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/favicon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ],
@@ -26,7 +26,7 @@
       "url": "/?action=new-case",
       "icons": [
         {
-          "src": "/logo.svg",
+          "src": "/favicon.png",
           "sizes": "96x96"
         }
       ]
@@ -38,7 +38,7 @@
       "url": "/?tab=dashboard",
       "icons": [
         {
-          "src": "/logo.svg",
+          "src": "/favicon.png",
           "sizes": "96x96"
         }
       ]
