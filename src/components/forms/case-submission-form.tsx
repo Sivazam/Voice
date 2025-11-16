@@ -204,15 +204,54 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
 
   const startRecording = async () => {
     try {
-      // Request microphone permission exclusively
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
+      // Check for iOS Safari compatibility
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isSafari = /Safari/.test(navigator.userAgent);
+      
+      // Request microphone permission with iOS-specific constraints
+      let stream;
+      if (isIOS && isSafari) {
+        // iOS Safari requires specific handling
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            echoCancellation: false,  // iOS Safari may not support this
+            noiseSuppression: false,  // iOS Safari may not support this
+            autoGainControl: false,  // iOS Safari may not support this
+            sampleRate: 44100,  // Standard sample rate for iOS compatibility
+          }
+        });
+      } else {
+        // Standard browsers
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+      }
+      
+      // Check if MediaRecorder is supported
+      if (!window.MediaRecorder) {
+        if (isIOS) {
+          setError('Voice recording is not supported on this iOS device. Please try using Safari browser or update your iOS version.');
+        } else {
+          setError('Voice recording is not supported on this browser. Please try using Chrome, Firefox, or Safari.');
         }
-      });
-      const mediaRecorder = new MediaRecorder(stream);
+        return;
+      }
+      
+      // Create media recorder with format fallback for iOS
+      let mediaRecorder;
+      try {
+        mediaRecorder = new MediaRecorder(stream, {
+          mimeType: isIOS && isSafari ? 'audio/mp4' : 'audio/webm'
+        });
+      } catch (e) {
+        // Fallback for browsers that don't support mimeType
+        mediaRecorder = new MediaRecorder(stream);
+      }
+      
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -223,13 +262,28 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const audioFile = new File([audioBlob], `recording-${Date.now()}.webm`, { type: 'audio/webm' });
-        const url = URL.createObjectURL(audioFile);
+        const audioChunks = audioChunksRef.current;
+        audioChunksRef.current = [];
         
-        setRecordedAudio(audioFile);
+        // Create appropriate audio format for iOS compatibility
+        let audioBlob;
+        let audioFileName;
+        
+        if (isIOS && isSafari) {
+          // iOS Safari prefers mp4 format
+          audioBlob = new Blob(audioChunks, { type: 'audio/mp4' });
+          audioFileName = `recording-${Date.now()}.mp4`;
+        } else {
+          // Standard browsers use webm
+          audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          audioFileName = `recording-${Date.now()}.webm`;
+        }
+        
+        const url = URL.createObjectURL(audioBlob);
+        
+        setRecordedAudio(new File([audioBlob], audioFileName, { type: audioBlob.type }));
         setAudioUrl(url);
-        updateFormData('voiceRecording', audioFile);
+        updateFormData('voiceRecording', new File([audioBlob], audioFileName, { type: audioBlob.type }));
         
         // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
@@ -254,14 +308,29 @@ export const CaseSubmissionForm = React.memo(function CaseSubmissionForm({ userI
       console.error('Microphone access error:', error);
       if (error instanceof DOMException) {
         if (error.name === 'NotAllowedError') {
-          setError('Microphone access denied. Please allow microphone access in your browser settings to record your statement.');
+          if (isIOS && isSafari) {
+            setError('Microphone access denied on iOS Safari. Go to Settings > Safari & Privacy > Microphone > Allow.');
+          } else {
+            setError('Microphone access denied. Please allow microphone access in your browser settings to record your statement.');
+          }
         } else if (error.name === 'NotFoundError') {
-          setError('No microphone found. Please connect a microphone to record your statement.');
+          if (isIOS) {
+            setError('No microphone found on iOS device. Please ensure your device has a working microphone.');
+          } else {
+            setError('No microphone found. Please connect a microphone to record your statement.');
+          }
+        } else if (error.name === 'NotReadableError') {
+          setError('Microphone is being used by another application. Please close other apps and try again.');
         } else {
           setError(`Microphone error: ${error.message}. Please check your device settings.`);
         }
       } else {
-        setError('Unable to access microphone. Please check permissions and ensure a microphone is connected.');
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        if (isIOS) {
+          setError('Unable to access microphone on iOS. Please ensure you are using Safari and have granted microphone permission in Settings.');
+        } else {
+          setError('Unable to access microphone. Please check permissions and ensure a microphone is connected.');
+        }
       }
     }
   };
