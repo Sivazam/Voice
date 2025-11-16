@@ -225,62 +225,133 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
         isSafari,
         isChrome,
         isFirefox,
-        isEdge
+        isEdge,
+        isSecure: window.isSecureContext,
+        protocol: window.location.protocol
       });
+      
+      // Check for HTTPS requirement on Android
+      if (isAndroid && !window.isSecureContext) {
+        setError('Microphone access requires HTTPS connection on Android. Please use the secure version of this site.');
+        return;
+      }
       
       // Show appropriate permission message based on device
       if (isIOS && isSafari) {
         setError('Requesting microphone access. Please allow when prompted.');
       } else if (isAndroid) {
-        setError('Requesting microphone access on Android. Please allow when prompted.');
+        setError('Requesting microphone access on Android. Please allow when prompted by your browser.');
       } else {
         setError('Requesting microphone access. Please allow when prompted.');
       }
         
-        // Try to trigger permission dialog more explicitly on iOS
-        // First check if we already have permission
-        const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-        
-        if (permissionStatus.state === 'denied') {
-          setError('Microphone access denied on iOS Safari. Go to Settings > Safari > Microphone > Allow, then refresh the page.');
-          return;
-        }
-        
-        if (permissionStatus.state === 'prompt') {
-          setError('Please tap "Allow" when Safari asks for microphone access to record your voice statement.');
+        // Try to trigger permission dialog more explicitly
+        // First check if we already have permission (only on supported browsers)
+        if ('permissions' in navigator && 'query' in navigator.permissions) {
+          try {
+            const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+            
+            if (permissionStatus.state === 'denied') {
+              if (isAndroid) {
+                setError('Microphone access denied on Android. Please check your browser settings and allow microphone access.');
+              } else if (isIOS && isSafari) {
+                setError('Microphone access denied on iOS Safari. Go to Settings > Safari > Microphone > Allow, then refresh the page.');
+              } else {
+                setError('Microphone access denied. Please allow microphone access in your browser settings and refresh the page.');
+              }
+              return;
+            }
+            
+            if (permissionStatus.state === 'prompt') {
+              if (isAndroid) {
+                setError('Please tap "Allow" when your browser asks for microphone access.');
+              } else if (isIOS && isSafari) {
+                setError('Please tap "Allow" when Safari asks for microphone access to record your voice statement.');
+              } else {
+                setError('Please allow microphone access when prompted.');
+              }
+            }
+          } catch (permError) {
+            console.warn('Permission API not available, proceeding with getUserMedia:', permError);
+          }
         }
       
-      // Request microphone permission with iOS-specific constraints
+      // Request microphone permission with device-specific constraints
       let stream;
       try {
+        let audioConstraints = {};
+        
         if (isIOS && isSafari) {
           // iOS Safari requires specific handling
-          stream = await navigator.mediaDevices.getUserMedia({ 
-            audio: {
-              echoCancellation: false,  // iOS Safari may not support this
-              noiseSuppression: false,  // iOS Safari may not support this
-              autoGainControl: false,  // iOS Safari may not support this
-              sampleRate: 44100,  // Standard sample rate for iOS compatibility
-            }
-          });
+          audioConstraints = {
+            echoCancellation: false,  // iOS Safari may not support this
+            noiseSuppression: false,  // iOS Safari may not support this
+            autoGainControl: false,  // iOS Safari may not support this
+            sampleRate: 44100,  // Standard sample rate for iOS compatibility
+          };
+        } else if (isAndroid) {
+          // Android-specific constraints
+          audioConstraints = {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            sampleRate: 44100,  // Standard sample rate for Android
+            channelCount: 1,  // Mono for better compatibility
+          };
         } else {
           // Standard browsers
-          stream = await navigator.mediaDevices.getUserMedia({ 
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true
-            }
-          });
+          audioConstraints = {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          };
         }
+        
+        console.log('🎤 Requesting microphone with constraints:', audioConstraints);
+        
+        // Request microphone access
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: audioConstraints
+        });
+        
+        console.log('✅ Microphone access granted successfully');
+        
       } catch (permissionError) {
-        if (permissionError instanceof DOMException && permissionError.name === 'NotAllowedError') {
-          if (isIOS && isSafari) {
-            setError('Microphone access denied. On iOS Safari: Go to Settings > Safari > Microphone > Allow, then refresh this page.');
+        console.error('❌ Microphone access error:', permissionError);
+        
+        if (permissionError instanceof DOMException) {
+          if (permissionError.name === 'NotAllowedError') {
+            if (isAndroid) {
+              setError('Microphone access denied on Android. Please check your browser settings and allow microphone access. You may need to restart your browser.');
+            } else if (isIOS && isSafari) {
+              setError('Microphone access denied. On iOS Safari: Go to Settings > Safari > Microphone > Allow, then refresh this page.');
+            } else {
+              setError('Microphone access denied. Please allow microphone access in your browser settings and refresh the page.');
+            }
+            return;
+          } else if (permissionError.name === 'NotFoundError') {
+            if (isAndroid) {
+              setError('No microphone found on Android device. Please ensure your device has a working microphone and check app permissions.');
+            } else if (isIOS) {
+              setError('No microphone found on iOS device. Please ensure your device has a working microphone.');
+            } else {
+              setError('No microphone found. Please connect a microphone to record your statement.');
+            }
+            return;
+          } else if (permissionError.name === 'NotReadableError') {
+            setError('Microphone is being used by another application. Please close other apps and try again.');
+            return;
+          } else if (permissionError.name === 'SecurityError') {
+            if (isAndroid) {
+              setError('Security error on Android. Please ensure you are accessing this site via HTTPS and check browser permissions.');
+            } else {
+              setError('Security error. Please ensure you are accessing this site via HTTPS.');
+            }
+            return;
           } else {
-            setError('Microphone access denied. Please allow microphone access in your browser settings and refresh the page.');
+            setError(`Microphone error: ${permissionError.message}. Please check your device settings.`);
+            return;
           }
-          return;
         }
         throw permissionError;
       }
@@ -999,6 +1070,10 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
                   <p className="text-xs text-blue-700">
                     iOS Safari users: Please allow microphone access when prompted. If denied, go to Settings {'>'} Safari {'>'} Microphone {'>'} Allow. 
                     If you encounter upload issues, try recording again or use Chrome/Firefox for better compatibility.
+                  </p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    Android users: Please allow microphone access when prompted by your browser. Make sure you're using a secure (HTTPS) connection. 
+                    If permission is denied, check your browser settings and app permissions.
                   </p>
                 </div>
                 

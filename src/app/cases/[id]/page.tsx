@@ -65,11 +65,28 @@ export default function CaseReviewPage() {
 
   const caseId = params.id as string;
 
+  // Add a separate effect to initialize auth check
+  useEffect(() => {
+    // Small delay to ensure auth store is properly initialized
+    const timer = setTimeout(() => {
+      setAuthChecked(true);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     console.log('🔍 Case review page mounted');
     console.log('🔍 Case ID:', caseId);
     console.log('🔍 Is authenticated:', isAuthenticated);
     console.log('🔍 User:', user);
+    console.log('🔍 Auth checked:', authChecked);
+    
+    // Wait a moment for auth to be properly initialized
+    if (!authChecked) {
+      console.log('🔍 Authentication not yet checked, waiting...');
+      return;
+    }
     
     if (!isAuthenticated) {
       console.log('🔍 User not authenticated, redirecting to login');
@@ -83,10 +100,9 @@ export default function CaseReviewPage() {
       return;
     }
     
-    setAuthChecked(true);
     console.log('🔍 Authentication check passed, fetching case');
     fetchCase();
-  }, [caseId, isAuthenticated, user]);
+  }, [caseId, isAuthenticated, user, authChecked]);
 
   const fetchCase = async () => {
     setLoading(true);

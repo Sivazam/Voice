@@ -25,6 +25,7 @@ import { Case, CaseStatus, ApiResponse } from '@/types';
 interface CaseTrackingDashboardProps {
   userId: string;
   refreshTrigger?: number; // Add refreshTrigger prop
+  onViewCaseDetails?: (case_: Case) => void; // Add callback for viewing details
 }
 
 const statusColors = {
@@ -41,7 +42,7 @@ const statusIcons = {
   RESOLVED: CheckCircle
 };
 
-export function CaseTrackingDashboard({ userId, refreshTrigger }: CaseTrackingDashboardProps) {
+export function CaseTrackingDashboard({ userId, refreshTrigger, onViewCaseDetails }: CaseTrackingDashboardProps) {
   const router = useRouter();
   const [cases, setCases] = useState<Case[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,7 +103,12 @@ export function CaseTrackingDashboard({ userId, refreshTrigger }: CaseTrackingDa
   };
 
   const handleViewDetails = (case_: Case) => {
-    router.push(`/cases/${case_.id}`);
+    if (onViewCaseDetails) {
+      onViewCaseDetails(case_);
+    } else {
+      // Fallback to navigation if no callback provided
+      router.push(`/cases/${case_.id}`);
+    }
   };
 
   if (loading) {

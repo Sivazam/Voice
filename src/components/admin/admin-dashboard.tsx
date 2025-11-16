@@ -33,6 +33,7 @@ import { UserManagement } from './user-management';
 interface AdminDashboardProps {
   adminId: string;
   userRole?: 'ADMIN' | 'SUPERADMIN';
+  onViewCaseDetails?: (case_: Case) => void; // Add callback for viewing details
 }
 
 const statusColors = {
@@ -49,7 +50,7 @@ const statusIcons = {
   RESOLVED: CheckCircle
 };
 
-export function AdminDashboard({ adminId, userRole = 'ADMIN' }: AdminDashboardProps) {
+export function AdminDashboard({ adminId, userRole = 'ADMIN', onViewCaseDetails }: AdminDashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'cases' | 'users'>('cases');
   const [cases, setCases] = useState<Case[]>([]);
@@ -381,7 +382,13 @@ export function AdminDashboard({ adminId, userRole = 'ADMIN' }: AdminDashboardPr
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => router.push(`/cases/${case_.id}`)}
+                            onClick={() => {
+                              if (onViewCaseDetails) {
+                                onViewCaseDetails(case_);
+                              } else {
+                                router.push(`/cases/${case_.id}`);
+                              }
+                            }}
                             className="w-full sm:w-auto"
                           >
                             <Eye className="h-4 w-4 mr-2" />

@@ -13,8 +13,9 @@ import { CaseSubmissionModal } from '@/components/forms/case-submission-modal';
 import { CaseTrackingDashboard } from '@/components/cases/case-tracking-dashboard';
 import { AdminDashboard } from '@/components/admin/admin-dashboard';
 import { PublicCasesBrowser } from '@/components/cases/public-cases-browser';
+import { CaseDetailsModal } from '@/components/cases/case-details-modal';
 import { useAuthStore } from '@/store/auth-store';
-import { User as UserType } from '@/types';
+import { User as UserType, Case } from '@/types';
 
 export default React.memo(function Home() {
   const [activeTab, setActiveTab] = useState<'home' | 'features' | 'about' | 'dashboard' | 'admin' | 'public-cases'>('home');
@@ -23,6 +24,8 @@ export default React.memo(function Home() {
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [showCaseForm, setShowCaseForm] = useState(false);
   const [showPublicCases, setShowPublicCases] = useState(false);
+  const [showCaseDetails, setShowCaseDetails] = useState(false);
+  const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [pendingUserId, setPendingUserId] = useState('');
   const [pendingPhoneNumber, setPendingPhoneNumber] = useState('');
   const [refreshTrigger, setRefreshTrigger] = useState(0); // Add refresh trigger
@@ -138,6 +141,11 @@ export default React.memo(function Home() {
     // For now, we'll just log it
     console.log(`Case submitted successfully! Case ID: ${caseId}`);
   }, [refreshTrigger]);
+
+  const handleViewCaseDetails = React.useCallback((case_: Case) => {
+    setSelectedCase(case_);
+    setShowCaseDetails(true);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
@@ -471,14 +479,14 @@ export default React.memo(function Home() {
             </Button>
           </div>
 
-          <CaseTrackingDashboard userId={user.id} refreshTrigger={refreshTrigger} />
+          <CaseTrackingDashboard userId={user.id} refreshTrigger={refreshTrigger} onViewCaseDetails={handleViewCaseDetails} />
         </section>
       )}
 
       {/* Admin Dashboard Section */}
       {activeTab === 'admin' && isAuthenticated && user && (user.role === 'ADMIN' || user.role === 'SUPERADMIN') && (
         <section className="container mx-auto px-4 py-16">
-          <AdminDashboard adminId={user.id} userRole={user.role} />
+          <AdminDashboard adminId={user.id} userRole={user.role} onViewCaseDetails={handleViewCaseDetails} />
         </section>
       )}
 
@@ -684,6 +692,14 @@ export default React.memo(function Home() {
           onClose={() => setShowCaseForm(false)}
           userId={user.id}
           onSuccess={handleCaseSubmitSuccess}
+        />
+      )}
+
+      {showCaseDetails && selectedCase && (
+        <CaseDetailsModal
+          case_={selectedCase}
+          isOpen={showCaseDetails}
+          onClose={() => setShowCaseDetails(false)}
         />
       )}
     </div>
