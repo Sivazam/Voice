@@ -191,7 +191,7 @@ export function AudioTest({ audioUrl, title = "Audio Test" }: AudioTestProps) {
             ref={audioRef}
             controls 
             className="w-full"
-            src={`/api/proxy/storage?url=${encodeURIComponent(audioUrl)}`}
+            src={audioUrl ? `/api/proxy/storage?url=${encodeURIComponent(audioUrl)}` : ''}
             preload="metadata"
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
@@ -208,7 +208,7 @@ export function AudioTest({ audioUrl, title = "Audio Test" }: AudioTestProps) {
           <h4 className="font-medium text-gray-900">Custom Audio Controls (Proxy)</h4>
           <audio
             ref={customAudioRef}
-            src={`/api/proxy/storage?url=${encodeURIComponent(audioUrl)}`}
+            src={audioUrl ? `/api/proxy/storage?url=${encodeURIComponent(audioUrl)}` : ''}
             preload="metadata"
             className="hidden"
           />
@@ -225,8 +225,13 @@ export function AudioTest({ audioUrl, title = "Audio Test" }: AudioTestProps) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open(`/api/proxy/storage?url=${encodeURIComponent(audioUrl)}`, '_blank')}
+              onClick={() => {
+                if (audioUrl) {
+                  window.open(`/api/proxy/storage?url=${encodeURIComponent(audioUrl)}`, '_blank');
+                }
+              }}
               className="flex items-center gap-2"
+              disabled={!audioUrl}
             >
               <Download className="h-4 w-4" />
               Download
@@ -252,7 +257,9 @@ export function AudioTest({ audioUrl, title = "Audio Test" }: AudioTestProps) {
             <div className="text-xs text-gray-600 mb-1">Original URL:</div>
             <div className="text-xs font-mono break-all">{audioUrl}</div>
             <div className="text-xs text-gray-600 mb-1 mt-2">Proxy URL:</div>
-            <div className="text-xs font-mono break-all">{`/api/proxy/storage?url=${encodeURIComponent(audioUrl)}`}</div>
+            <div className="text-xs font-mono break-all">
+              {audioUrl ? `/api/proxy/storage?url=${encodeURIComponent(audioUrl)}` : 'No URL'}
+            </div>
           </div>
         </div>
       </CardContent>

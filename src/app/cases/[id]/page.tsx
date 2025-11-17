@@ -465,8 +465,13 @@ export default function CaseReviewPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => window.open(`/api/proxy/storage?url=${encodeURIComponent(case_.voiceRecordingUrl)}`, '_blank')}
+                          onClick={() => {
+                            if (case_.voiceRecordingUrl) {
+                              window.open(`/api/proxy/storage?url=${encodeURIComponent(case_.voiceRecordingUrl)}`, '_blank');
+                            }
+                          }}
                           className="flex items-center gap-2"
+                          disabled={!case_.voiceRecordingUrl}
                         >
                           <Download className="h-4 w-4" />
                           Download Audio

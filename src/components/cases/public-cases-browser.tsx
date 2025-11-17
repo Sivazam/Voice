@@ -489,7 +489,7 @@ export const PublicCasesBrowser = React.memo(function PublicCasesBrowser({ isOpe
                     <audio 
                       controls 
                       className="w-full"
-                      src={`/api/proxy/storage?url=${encodeURIComponent(selectedCase.voiceRecordingUrl)}`}
+                      src={selectedCase.voiceRecordingUrl ? `/api/proxy/storage?url=${encodeURIComponent(selectedCase.voiceRecordingUrl)}` : ''}
                       preload="metadata"
                     >
                       Your browser does not support the audio element.
@@ -498,8 +498,13 @@ export const PublicCasesBrowser = React.memo(function PublicCasesBrowser({ isOpe
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => window.open(`/api/proxy/storage?url=${encodeURIComponent(selectedCase.voiceRecordingUrl)}`, '_blank')}
+                        onClick={() => {
+                          if (selectedCase.voiceRecordingUrl) {
+                            window.open(`/api/proxy/storage?url=${encodeURIComponent(selectedCase.voiceRecordingUrl)}`, '_blank');
+                          }
+                        }}
                         className="flex items-center gap-2"
+                        disabled={!selectedCase.voiceRecordingUrl}
                       >
                         <Download className="h-4 w-4" />
                         Download Audio

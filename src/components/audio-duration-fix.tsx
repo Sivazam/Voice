@@ -273,7 +273,7 @@ export function AudioDurationFix({ audioUrl, title = "Audio Duration Fix" }: Aud
             ref={audioRef}
             controls 
             className="w-full"
-            src={`/api/proxy/storage?url=${encodeURIComponent(audioUrl)}`}
+            src={audioUrl ? `/api/proxy/storage?url=${encodeURIComponent(audioUrl)}` : ''}
             preload="metadata"
             onLoadedMetadata={() => {
               if (audioRef.current) {
@@ -302,8 +302,13 @@ export function AudioDurationFix({ audioUrl, title = "Audio Duration Fix" }: Aud
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open(`/api/proxy/storage?url=${encodeURIComponent(audioUrl)}`, '_blank')}
+              onClick={() => {
+                if (audioUrl) {
+                  window.open(`/api/proxy/storage?url=${encodeURIComponent(audioUrl)}`, '_blank');
+                }
+              }}
               className="flex items-center gap-2"
+              disabled={!audioUrl}
             >
               <Download className="h-4 w-4" />
               Download

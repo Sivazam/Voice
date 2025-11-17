@@ -455,7 +455,7 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
                   <audio 
                     controls 
                     className="w-full"
-                    src={`/api/proxy/storage?url=${encodeURIComponent(case_.voiceRecordingUrl)}`}
+                    src={case_.voiceRecordingUrl ? `/api/proxy/storage?url=${encodeURIComponent(case_.voiceRecordingUrl)}` : ''}
                     preload="metadata"
                   >
                     Your browser does not support the audio element.
@@ -465,7 +465,7 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
                 {/* Custom audio controls with enhanced functionality */}
                 <audio
                   ref={audioRef}
-                  src={`/api/proxy/storage?url=${encodeURIComponent(case_.voiceRecordingUrl)}`}
+                  src={case_.voiceRecordingUrl ? `/api/proxy/storage?url=${encodeURIComponent(case_.voiceRecordingUrl)}` : ''}
                   onTimeUpdate={handleAudioTimeUpdate}
                   onLoadedMetadata={handleAudioLoadedMetadata}
                   onEnded={handleAudioEnded}
@@ -488,8 +488,13 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => window.open(`/api/proxy/storage?url=${encodeURIComponent(case_.voiceRecordingUrl || '')}`, '_blank')}
+                      onClick={() => {
+                        if (case_.voiceRecordingUrl) {
+                          window.open(`/api/proxy/storage?url=${encodeURIComponent(case_.voiceRecordingUrl)}`, '_blank');
+                        }
+                      }}
                       className="flex items-center gap-2 h-8 px-3"
+                      disabled={!case_.voiceRecordingUrl}
                     >
                       <Download className="h-4 w-4" />
                       Download
