@@ -453,10 +453,25 @@ export default function CaseReviewPage() {
                   <div>
                     <Label className="text-sm font-medium">Audio Recording</Label>
                     <div className="mt-2 p-3 border rounded-lg">
-                      <audio controls className="w-full">
-                        <source src={case_.voiceRecordingUrl} type="audio/mpeg" />
+                      <audio 
+                        controls 
+                        className="w-full"
+                        src={`/api/proxy/storage?url=${encodeURIComponent(case_.voiceRecordingUrl)}`}
+                        preload="metadata"
+                      >
                         Your browser does not support the audio element.
                       </audio>
+                      <div className="mt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(`/api/proxy/storage?url=${encodeURIComponent(case_.voiceRecordingUrl)}`, '_blank')}
+                          className="flex items-center gap-2"
+                        >
+                          <Download className="h-4 w-4" />
+                          Download Audio
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}

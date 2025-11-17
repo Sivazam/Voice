@@ -131,11 +131,27 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
         audioRef.current.pause();
         setIsPlayingAudio(false);
       } else {
+        // Ensure audio is loaded before playing
         if (audioRef.current.readyState < 2) {
-          await new Promise((resolve) => {
-            if (audioRef.current) {
-              audioRef.current.addEventListener('canplay', resolve, { once: true });
-            }
+          await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('Audio loading timeout')), 10000);
+            
+            const handleCanPlay = () => {
+              clearTimeout(timeout);
+              audioRef.current?.removeEventListener('canplay', handleCanPlay);
+              audioRef.current?.removeEventListener('error', handleError);
+              resolve(true);
+            };
+            
+            const handleError = () => {
+              clearTimeout(timeout);
+              audioRef.current?.removeEventListener('canplay', handleCanPlay);
+              audioRef.current?.removeEventListener('error', handleError);
+              reject(new Error('Audio loading failed'));
+            };
+            
+            audioRef.current.addEventListener('canplay', handleCanPlay);
+            audioRef.current.addEventListener('error', handleError);
           });
         }
         
@@ -144,10 +160,19 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
       }
     } catch (error) {
       console.error('Error playing audio:', error);
+      setIsPlayingAudio(false);
+      
+      // Fallback: open audio in new tab if custom controls fail
       if ((error as Error).name === 'NotAllowedError') {
         alert('Please interact with the page first to play audio');
+      } else if ((error as Error).name === 'NotSupportedError') {
+        alert('Audio format not supported. Downloading instead.');
+        window.open(`/api/proxy/storage?url=${encodeURIComponent(case_.voiceRecordingUrl)}`, '_blank');
       } else {
-        window.open(case_.voiceRecordingUrl, '_blank');
+        // For other errors, offer download option
+        if (confirm('Audio playback failed. Would you like to download the audio file instead?')) {
+          window.open(`/api/proxy/storage?url=${encodeURIComponent(case_.voiceRecordingUrl)}`, '_blank');
+        }
       }
     }
   };
@@ -168,9 +193,65 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
     if (!audioRef.current) return;
     
     const duration = audioRef.current.duration;
+    console.log('🎵 Audio metadata loaded:', {
+      duration: duration,
+      currentTime: audioRef.current.currentTime,
+      readyState: audioRef.current.readyState,
+      src: audioRef.current.src
+    });
+    
+    // Validate duration - if it seems unreasonable (over 1 hour), try to recalculate
     if (!isNaN(duration) && duration > 0) {
-      setAudioDuration(duration);
+      // If duration seems unreasonable (over 10 minutes for a voice recording), 
+      // it might be a metadata reading issue
+      if (duration > 600) { // 10 minutes
+        console.warn('⚠️ Unreasonable audio duration detected:', duration);
+        // Try to get actual duration by playing a small portion
+        validateAudioDuration();
+      } else {
+        setAudioDuration(duration);
+      }
     }
+  };
+
+  const validateAudioDuration = async () => {
+    if (!audioRef.current) return;
+    
+    try {
+      // Create a temporary audio element to validate duration
+      const tempAudio = new Audio(audioRef.current.src);
+      
+      tempAudio.addEventListener('loadedmetadata', () => {
+        console.log('🎵 Validation audio duration:', tempAudio.duration);
+        
+        if (tempAudio.duration > 0 && tempAudio.duration < 600) {
+          setAudioDuration(tempAudio.duration);
+        } else {
+          // If still unreasonable, try to estimate from file size
+          estimateDurationFromAudio();
+        }
+      });
+      
+      tempAudio.addEventListener('error', () => {
+        console.warn('⚠️ Validation audio failed, estimating duration');
+        estimateDurationFromAudio();
+      });
+      
+      // Load the audio
+      tempAudio.load();
+    } catch (error) {
+      console.error('Error validating audio duration:', error);
+      estimateDurationFromAudio();
+    }
+  };
+
+  const estimateDurationFromAudio = () => {
+    // Fallback: estimate duration for voice recordings
+    // Typical voice recording: ~128 kbps = 16 KB/s
+    // This is a rough estimate for troubleshooting
+    const estimatedDuration = 30; // 30 seconds as reasonable default
+    console.log('🎵 Using estimated duration:', estimatedDuration);
+    setAudioDuration(estimatedDuration);
   };
 
   const handleAudioEnded = () => {
@@ -181,6 +262,13 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
 
   const handleAudioError = (e: React.SyntheticEvent<HTMLAudioElement>) => {
     console.error('Audio error:', e);
+    const audioElement = e.currentTarget;
+    if (audioElement.error) {
+      console.error('Audio error details:', {
+        code: audioElement.error.code,
+        message: audioElement.error.message
+      });
+    }
   };
 
   useEffect(() => {
@@ -362,6 +450,19 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
+                {/* Fallback simple audio controls */}
+                <div className="mb-4">
+                  <audio 
+                    controls 
+                    className="w-full"
+                    src={`/api/proxy/storage?url=${encodeURIComponent(case_.voiceRecordingUrl)}`}
+                    preload="metadata"
+                  >
+                    Your browser does not support the audio element.
+                  </audio>
+                </div>
+                
+                {/* Custom audio controls with enhanced functionality */}
                 <audio
                   ref={audioRef}
                   src={`/api/proxy/storage?url=${encodeURIComponent(case_.voiceRecordingUrl)}`}

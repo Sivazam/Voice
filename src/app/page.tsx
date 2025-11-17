@@ -143,9 +143,15 @@ export default React.memo(function Home() {
   }, [refreshTrigger]);
 
   const handleViewCaseDetails = React.useCallback((case_: Case) => {
-    setSelectedCase(case_);
-    setShowCaseDetails(true);
-  }, []);
+    // For admins, navigate to the review case page instead of opening a modal
+    // For regular users, continue using the modal
+    if (isAuthenticated && (user?.role === 'ADMIN' || user?.role === 'SUPERADMIN')) {
+      window.location.href = `/cases/${case_.id}`;
+    } else {
+      setSelectedCase(case_);
+      setShowCaseDetails(true);
+    }
+  }, [isAuthenticated, user]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
