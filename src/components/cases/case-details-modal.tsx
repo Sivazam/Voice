@@ -132,26 +132,32 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
         setIsPlayingAudio(false);
       } else {
         // Ensure audio is loaded before playing
-        if (audioRef.current.readyState < 2) {
+        if (audioRef.current && audioRef.current.readyState < 2) {
           await new Promise((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Audio loading timeout')), 10000);
             
             const handleCanPlay = () => {
               clearTimeout(timeout);
-              audioRef.current?.removeEventListener('canplay', handleCanPlay);
-              audioRef.current?.removeEventListener('error', handleError);
+              if (audioRef.current) {
+                audioRef.current.removeEventListener('canplay', handleCanPlay);
+                audioRef.current.removeEventListener('error', handleError);
+              }
               resolve(true);
             };
             
             const handleError = () => {
               clearTimeout(timeout);
-              audioRef.current?.removeEventListener('canplay', handleCanPlay);
-              audioRef.current?.removeEventListener('error', handleError);
+              if (audioRef.current) {
+                audioRef.current.removeEventListener('canplay', handleCanPlay);
+                audioRef.current.removeEventListener('error', handleError);
+              }
               reject(new Error('Audio loading failed'));
             };
             
-            audioRef.current.addEventListener('canplay', handleCanPlay);
-            audioRef.current.addEventListener('error', handleError);
+            if (audioRef.current) {
+              audioRef.current.addEventListener('canplay', handleCanPlay);
+              audioRef.current.addEventListener('error', handleError);
+            }
           });
         }
         
@@ -167,11 +173,15 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
         alert('Please interact with the page first to play audio');
       } else if ((error as Error).name === 'NotSupportedError') {
         alert('Audio format not supported. Downloading instead.');
-        window.open(`/api/proxy/storage?url=${encodeURIComponent(case_.voiceRecordingUrl)}`, '_blank');
+        if (case_.voiceRecordingUrl) {
+          window.open(`/api/proxy/storage?url=${encodeURIComponent(case_.voiceRecordingUrl)}`, '_blank');
+        }
       } else {
         // For other errors, offer download option
         if (confirm('Audio playback failed. Would you like to download the audio file instead?')) {
-          window.open(`/api/proxy/storage?url=${encodeURIComponent(case_.voiceRecordingUrl)}`, '_blank');
+          if (case_.voiceRecordingUrl) {
+            window.open(`/api/proxy/storage?url=${encodeURIComponent(case_.voiceRecordingUrl)}`, '_blank');
+          }
         }
       }
     }
@@ -215,7 +225,7 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
   };
 
   const validateAudioDuration = async () => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || !case_.voiceRecordingUrl) return;
     
     try {
       // Create a temporary audio element to validate duration
