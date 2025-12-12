@@ -1,5 +1,5 @@
 {
-  "name": "Break Your Silence - Healthcare Transparency Platform",
+  "name": "Break Your Silence multi-category justice system",
   "short_name": "Break Your Silence",
   "description": "Report hospital malpractices and track healthcare complaints",
   "start_url": "/",
@@ -22,7 +22,7 @@
     {
       "name": "File New Case",
       "short_name": "New Case",
-      "description": "File a new healthcare complaint",
+      "description": "File a new multi-category justice system complaint",
       "url": "/?action=new-case",
       "icons": [
         {

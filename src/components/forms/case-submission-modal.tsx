@@ -7,16 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { 
   User, 
-  Building, 
-  Calendar, 
   FileText, 
   MapPin, 
   Upload, 
@@ -34,60 +29,35 @@ import {
   Phone,
   Mail,
   Search,
-  Filter
+  Filter,
+  GraduationCap,
+  Building,
+  Receipt,
+  Banknote,
+  Shield,
+  Landmark
 } from 'lucide-react';
-import { CaseFormData, Gender, ApiResponse } from '@/types';
+import { CaseFormData, ApiResponse } from '@/types';
+import { MAIN_CATEGORIES } from '@/lib/constants';
 
 interface CaseSubmissionModalProps {
   isOpen: boolean;
   onClose: () => void;
   userId: string;
+  userPhone?: string;
+  userName?: string;
+  userEmail?: string;
   onSuccess: (caseId: string) => void;
 }
 
-const INDIAN_STATES = [
-  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa',
-  'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala',
-  'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland',
-  'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
-  'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Delhi', 'Mumbai', 'Kolkata',
-  'Chennai', 'Bengaluru', 'Hyderabad', 'Pune', 'Ahmedabad', 'Jaipur', 'Lucknow'
-];
-
-const DEPARTMENTS = [
-  'Emergency', 'ICU', 'General Ward', 'OPD', 'Surgery', 'Pediatrics',
-  'Gynecology', 'Cardiology', 'Neurology', 'Orthopedics', 'Oncology', 'Other'
-];
-
-const ISSUE_CATEGORIES = [
-  'No Prescription Provided',
-  'GST Discrepancy',
-  'Overcharging',
-  'Unused Medications Not Returned',
-  'Forced Medication Purchase',
-  'Lack of Transparency'
-];
-
-const RELATIONSHIPS = [
-  'Self', 'Parent', 'Spouse', 'Child', 'Sibling', 'Friend', 'Other'
-];
-
-// Initial form data - stable object to prevent re-renders
+// Initial form data
 const INITIAL_FORM_DATA: CaseFormData = {
-  patientName: '',
-  patientAge: 0,
-  patientGender: Gender.MALE,
-  relationshipToPatient: 'Self',
-  hospitalName: '',
-  hospitalAddress: '',
-  hospitalState: '',
-  hospitalRegistrationNo: '',
-  department: '',
-  admissionDate: new Date(),
-  isDischarged: false,
-  dischargeDate: undefined,
-  issueCategories: [],
-  detailedDescription: '',
+  mainCategory: '',
+  caseTitle: '',
+  name: '',
+  email: '',
+  phoneNumber: '',
+  caseDescription: '',
   voiceRecording: undefined,
   gpsLatitude: undefined,
   gpsLongitude: undefined,
@@ -98,7 +68,10 @@ const INITIAL_FORM_DATA: CaseFormData = {
 export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({ 
   isOpen, 
   onClose, 
-  userId, 
+  userId,
+  userPhone,
+  userName,
+  userEmail,
   onSuccess 
 }: CaseSubmissionModalProps) {
   const [currentStep, setCurrentStep] = useState(1);
@@ -113,7 +86,7 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
   const [playbackTime, setPlaybackTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
   
-  // Refs - moved outside component to prevent recreation
+  // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -122,41 +95,46 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
 
   const [formData, setFormData] = useState<CaseFormData>(INITIAL_FORM_DATA);
   
-  const totalSteps = 5;
+  const totalSteps = 4;
   const progressPercentage = (currentStep / totalSteps) * 100;
 
-  // Optimized form data update with minimal dependencies
+  // Initialize form with user data
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(prev => ({
+        ...prev,
+        phoneNumber: userPhone || '',
+        name: userName || '',
+        email: userEmail || ''
+      }));
+    }
+  }, [isOpen, userPhone, userName, userEmail]);
+
+  // Update form data
   const updateFormData = useCallback((field: keyof CaseFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   }, []);
 
-  // Memoized validation function
+  // Validation
   const validateCurrentStep = useCallback(() => {
     switch (currentStep) {
       case 1:
-        return formData.patientName.trim() && formData.patientAge > 0;
+        return formData.mainCategory.trim();
       case 2:
-        return formData.hospitalName.trim() && 
-               formData.hospitalAddress.trim() && 
-               formData.hospitalState && 
-               formData.department;
+        return formData.caseTitle.trim() && 
+               formData.name.trim() && 
+               formData.email.trim() && 
+               formData.phoneNumber.trim();
       case 3:
-        return formData.admissionDate && 
-               (!formData.isDischarged || formData.dischargeDate);
+        return formData.caseDescription.trim();
       case 4:
-        return formData.issueCategories.length > 0 && 
-               recordedAudio; // Only require issue categories and voice recording, detailed description is optional
-      case 5:
-        // Documents and GPS are now compulsory
-        return uploadedFiles.length > 0 && 
-               formData.gpsLatitude && 
-               formData.gpsLongitude;
+        return true; // All fields are optional in step 4
       default:
         return false;
     }
-  }, [currentStep, formData, recordedAudio, uploadedFiles]);
+  }, [currentStep, formData]);
 
-  // Optimized file upload handler
+  // File upload handler
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const validFiles = files.filter(file => {
@@ -174,14 +152,14 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
     updateFormData('attachments', [...formData.attachments, ...validFiles]);
   }, [formData.attachments, updateFormData]);
 
-  // Optimized file removal
+  // Remove file
   const removeFile = useCallback((index: number) => {
     const newFiles = uploadedFiles.filter((_, i) => i !== index);
     setUploadedFiles(newFiles);
     updateFormData('attachments', newFiles);
   }, [uploadedFiles, updateFormData]);
 
-  // Optimized location handler
+  // Get current location
   const getCurrentLocation = useCallback(() => {
     if (!navigator.geolocation) return;
     
@@ -195,217 +173,13 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
         setError('Unable to get your location. Please enter manually.');
       }
     );
-  }, []);
+  }, [updateFormData]);
 
-  // Optimized recording functions with proper cleanup
+  // Recording functions (simplified from original)
   const startRecording = useCallback(async () => {
     try {
-      // Cleanup any existing recording
-      if (mediaRecorderRef.current) {
-        mediaRecorderRef.current.stop();
-      }
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-        recordingIntervalRef.current = null;
-      }
-      
-        // Enhanced device detection for better compatibility
-      const userAgent = navigator.userAgent;
-      const isIOS = /iPad|iPhone|iPod/.test(userAgent);
-      const isAndroid = /Android/.test(userAgent);
-      const isSafari = /Safari/.test(userAgent) && !/Chrome|CriOS|FxiOS|EdgA/.test(userAgent);
-      const isChrome = /Chrome/.test(userAgent) && !/EdgA/.test(userAgent);
-      const isFirefox = /Firefox/.test(userAgent);
-      const isEdge = /EdgA/.test(userAgent);
-      
-      console.log('🔍 Device detection:', {
-        userAgent,
-        isIOS,
-        isAndroid,
-        isSafari,
-        isChrome,
-        isFirefox,
-        isEdge,
-        isSecure: window.isSecureContext,
-        protocol: window.location.protocol
-      });
-      
-      // Check for HTTPS requirement on Android
-      if (isAndroid && !window.isSecureContext) {
-        setError('Microphone access requires HTTPS connection on Android. Please use the secure version of this site.');
-        return;
-      }
-      
-      // Show appropriate permission message based on device
-      if (isIOS && isSafari) {
-        setError('Requesting microphone access. Please allow when prompted.');
-      } else if (isAndroid) {
-        setError('Requesting microphone access on Android. Please allow when prompted by your browser.');
-      } else {
-        setError('Requesting microphone access. Please allow when prompted.');
-      }
-        
-        // Try to trigger permission dialog more explicitly
-        // First check if we already have permission (only on supported browsers)
-        if ('permissions' in navigator && 'query' in navigator.permissions) {
-          try {
-            const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-            
-            if (permissionStatus.state === 'denied') {
-              if (isAndroid) {
-                setError('Microphone access denied on Android. Please check your browser settings and allow microphone access.');
-              } else if (isIOS && isSafari) {
-                setError('Microphone access denied on iOS Safari. Go to Settings > Safari > Microphone > Allow, then refresh the page.');
-              } else {
-                setError('Microphone access denied. Please allow microphone access in your browser settings and refresh the page.');
-              }
-              return;
-            }
-            
-            if (permissionStatus.state === 'prompt') {
-              if (isAndroid) {
-                setError('Please tap "Allow" when your browser asks for microphone access.');
-              } else if (isIOS && isSafari) {
-                setError('Please tap "Allow" when Safari asks for microphone access to record your voice statement.');
-              } else {
-                setError('Please allow microphone access when prompted.');
-              }
-            }
-          } catch (permError) {
-            console.warn('Permission API not available, proceeding with getUserMedia:', permError);
-          }
-        }
-      
-      // Request microphone permission with device-specific constraints
-      let stream;
-      try {
-        let audioConstraints = {};
-        
-        if (isIOS && isSafari) {
-          // iOS Safari requires specific handling
-          audioConstraints = {
-            echoCancellation: false,  // iOS Safari may not support this
-            noiseSuppression: false,  // iOS Safari may not support this
-            autoGainControl: false,  // iOS Safari may not support this
-            sampleRate: 44100,  // Standard sample rate for iOS compatibility
-          };
-        } else if (isAndroid) {
-          // Android-specific constraints
-          audioConstraints = {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            sampleRate: 44100,  // Standard sample rate for Android
-            channelCount: 1,  // Mono for better compatibility
-          };
-        } else {
-          // Standard browsers
-          audioConstraints = {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          };
-        }
-        
-        console.log('🎤 Requesting microphone with constraints:', audioConstraints);
-        
-        // Request microphone access
-        stream = await navigator.mediaDevices.getUserMedia({ 
-          audio: audioConstraints
-        });
-        
-        console.log('✅ Microphone access granted successfully');
-        
-      } catch (permissionError) {
-        console.error('❌ Microphone access error:', permissionError);
-        
-        if (permissionError instanceof DOMException) {
-          if (permissionError.name === 'NotAllowedError') {
-            if (isAndroid) {
-              setError('Microphone access denied on Android. Please check your browser settings and allow microphone access. You may need to restart your browser.');
-            } else if (isIOS && isSafari) {
-              setError('Microphone access denied. On iOS Safari: Go to Settings > Safari > Microphone > Allow, then refresh this page.');
-            } else {
-              setError('Microphone access denied. Please allow microphone access in your browser settings and refresh the page.');
-            }
-            return;
-          } else if (permissionError.name === 'NotFoundError') {
-            if (isAndroid) {
-              setError('No microphone found on Android device. Please ensure your device has a working microphone and check app permissions.');
-            } else if (isIOS) {
-              setError('No microphone found on iOS device. Please ensure your device has a working microphone.');
-            } else {
-              setError('No microphone found. Please connect a microphone to record your statement.');
-            }
-            return;
-          } else if (permissionError.name === 'NotReadableError') {
-            setError('Microphone is being used by another application. Please close other apps and try again.');
-            return;
-          } else if (permissionError.name === 'SecurityError') {
-            if (isAndroid) {
-              setError('Security error on Android. Please ensure you are accessing this site via HTTPS and check browser permissions.');
-            } else {
-              setError('Security error. Please ensure you are accessing this site via HTTPS.');
-            }
-            return;
-          } else {
-            setError(`Microphone error: ${permissionError.message}. Please check your device settings.`);
-            return;
-          }
-        }
-        throw permissionError;
-      }
-      
-      // Check if MediaRecorder is supported
-      if (!window.MediaRecorder) {
-        if (isIOS) {
-          setError('Voice recording is not supported on this iOS device. Please try using Safari browser or update your iOS version.');
-        } else {
-          setError('Voice recording is not supported on this browser. Please try using Chrome, Firefox, or Safari.');
-        }
-        // Stop the stream if MediaRecorder is not available
-        stream.getTracks().forEach(track => track.stop());
-        return;
-      }
-      
-      // Create media recorder with format fallback for iOS
-      let mediaRecorder;
-      let actualMimeType = 'audio/webm'; // default
-      
-      // Detect supported MIME types for this browser
-      const supportedTypes = [
-        'audio/webm;codecs=opus',
-        'audio/webm;codecs=vorbis',
-        'audio/webm',
-        'audio/mp4',
-        'audio/mp4;codecs=mp4a',
-        'audio/mpeg',
-        'audio/wav',
-        'audio/ogg;codecs=opus',
-        'audio/ogg',
-        'audio/x-m4a'
-      ];
-      
-      // Find the first supported MIME type
-      for (const type of supportedTypes) {
-        if (MediaRecorder.isTypeSupported(type)) {
-          actualMimeType = type;
-          break;
-        }
-      }
-      
-      console.log('🎤 Using MIME type:', actualMimeType, 'for', { isIOS, isAndroid, isSafari });
-      
-      try {
-        mediaRecorder = new MediaRecorder(stream, {
-          mimeType: actualMimeType
-        });
-      } catch (e) {
-        console.warn('⚠️ Failed to create MediaRecorder with MIME type, using default:', e);
-        // Fallback for browsers that don't support mimeType
-        mediaRecorder = new MediaRecorder(stream);
-      }
-      
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -415,956 +189,424 @@ export const CaseSubmissionModal = React.memo(function CaseSubmissionModal({
         }
       };
 
-      mediaRecorder.onstop = async () => {
-        const audioChunks = audioChunksRef.current;
-        audioChunksRef.current = [];
-        
-        // Create appropriate audio format based on actual MIME type used
-        let audioBlob;
-        let audioFileName;
-        
-        // Use the actual MIME type that was detected and used
-        let finalMimeType = actualMimeType || 'audio/webm';
-        
-        // iOS Safari special handling - sometimes produces unexpected MIME types
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome|CriOS|FxiOS/.test(navigator.userAgent);
-        
-        if (isIOS && isSafari) {
-          // For iOS Safari, try to determine the actual MIME type from chunks
-          if (audioChunks.length > 0 && audioChunks[0] instanceof Blob) {
-            const chunkType = audioChunks[0].type;
-            if (chunkType && chunkType.startsWith('audio/')) {
-              finalMimeType = chunkType;
-              console.log('🎤 iOS Safari detected chunk MIME type:', chunkType);
-            }
-          }
-          
-          // If still no valid MIME type, try common iOS formats
-          if (!finalMimeType || !finalMimeType.startsWith('audio/')) {
-            finalMimeType = 'audio/mp4'; // iOS Safari commonly supports this
-          }
-        }
-        
-        // Determine file extension based on MIME type
-        if (finalMimeType.includes('mp4')) {
-          audioFileName = `recording-${Date.now()}.mp4`;
-        } else if (finalMimeType.includes('mpeg') || finalMimeType.includes('mp3')) {
-          audioFileName = `recording-${Date.now()}.mp3`;
-        } else if (finalMimeType.includes('wav')) {
-          audioFileName = `recording-${Date.now()}.wav`;
-        } else if (finalMimeType.includes('m4a')) {
-          audioFileName = `recording-${Date.now()}.m4a`;
-        } else if (finalMimeType.includes('webm')) {
-          // For WebM files, prefer .webm extension
-          audioFileName = `recording-${Date.now()}.webm`;
-        } else if (finalMimeType.includes('ogg')) {
-          audioFileName = `recording-${Date.now()}.ogg`;
-        } else {
-          // Default to webm for other formats
-          audioFileName = `recording-${Date.now()}.webm`;
-        }
-        
-        // Create blob with the detected MIME type
-        try {
-          audioBlob = new Blob(audioChunks, { type: finalMimeType });
-        } catch (blobError) {
-          console.warn('⚠️ Failed to create blob with MIME type, trying without type:', blobError);
-          // Fallback: create blob without explicit type
-          audioBlob = new Blob(audioChunks);
-          // Update finalMimeType to match what the browser actually created
-          if (audioBlob.type) {
-            finalMimeType = audioBlob.type;
-          }
-        }
-        
-        console.log('🎵 Created audio blob:', {
-          mimeType: finalMimeType,
-          fileName: audioFileName,
-          blobSize: audioBlob.size,
-          chunksCount: audioChunks.length,
-          isIOS,
-          isSafari
-        });
-        
-        const audioFile = new File([audioBlob], audioFileName, { type: audioBlob.type });
-        const url = URL.createObjectURL(audioFile);
-        
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioFile = new File([audioBlob], 'recording.webm', { type: 'audio/webm' });
         setRecordedAudio(audioFile);
-        setAudioUrl(url);
         updateFormData('voiceRecording', audioFile);
         
-        // Cleanup
-        stream.getTracks().forEach(track => track.stop());
+        const url = URL.createObjectURL(audioBlob);
+        setAudioUrl(url);
         
-        // Clear any previous error messages on successful recording
-        setError('');
+        stream.getTracks().forEach(track => track.stop());
       };
 
       mediaRecorder.start();
       setIsRecording(true);
-      setRecordingTime(0);
-      setError(''); // Clear any errors when recording starts successfully
-
-      recordingIntervalRef.current = setInterval(() => {
-        setRecordingTime(prev => {
-          if (prev >= 300) {
-            stopRecording();
-            return 300;
-          }
-          return prev + 1;
-        });
-      }, 1000);
-
-    } catch (error) {
-      console.error('Microphone access error:', error);
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome|CriOS|FxiOS/.test(navigator.userAgent);
+      setError('');
       
-      if (error instanceof DOMException) {
-        if (error.name === 'NotAllowedError') {
-          if (isIOS && isSafari) {
-            setError('Microphone access denied on iOS Safari. Go to Settings > Safari > Microphone > Allow, then refresh this page.');
-          } else {
-            setError('Microphone access denied. Please allow microphone access in your browser settings to record your statement.');
-          }
-        } else if (error.name === 'NotFoundError') {
-          if (isIOS) {
-            setError('No microphone found on iOS device. Please ensure your device has a working microphone.');
-          } else {
-            setError('No microphone found. Please connect a microphone to record your statement.');
-          }
-        } else if (error.name === 'NotReadableError') {
-          setError('Microphone is being used by another application. Please close other apps and try again.');
-        } else {
-          setError(`Microphone error: ${error.message}. Please check your device settings.`);
-        }
-      } else {
-        if (isIOS && isSafari) {
-          setError('Unable to access microphone on iOS Safari. Please ensure you have granted microphone permission in Settings > Safari > Microphone.');
-        } else {
-          setError('Unable to access microphone. Please check permissions and ensure a microphone is connected.');
-        }
-      }
+      // Start timer
+      const startTime = Date.now();
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime(Math.floor((Date.now() - startTime) / 1000));
+      }, 1000);
+      
+    } catch (error) {
+      setError('Unable to access microphone. Please check your permissions.');
     }
-  }, []);
+  }, [updateFormData]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      setRecordingTime(0);
       
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
         recordingIntervalRef.current = null;
       }
     }
-  }, [isRecording, mediaRecorderRef, recordingIntervalRef]);
+  }, [isRecording]);
 
-  // Format time for display
-  const formatTime = useCallback((seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  }, []);
-
-  // Reset recording
-  const resetRecording = useCallback(() => {
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-    }
-    setRecordedAudio(null);
-    setAudioUrl('');
-    setRecordingTime(0);
-    updateFormData('voiceRecording', null);
-  }, [audioUrl, updateFormData]);
-
-  // Optimized audio playback
-  const playAudio = useCallback(() => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        audioRef.current.play();
-        setIsPlaying(true);
-      }
-    }
-  }, [isPlaying, audioRef]);
-
-  const deleteRecording = useCallback(() => {
-    setRecordedAudio(null);
-    setAudioUrl('');
-    setRecordingTime(0);
-    setIsPlaying(false);
-    setPlaybackTime(0);
-    setAudioDuration(0);
-    updateFormData('voiceRecording', undefined);
+  // Audio playback
+  const togglePlayback = useCallback(() => {
+    if (!audioRef.current || !audioUrl) return;
     
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play();
+      setIsPlaying(true);
     }
-  }, []);
+  }, [isPlaying, audioUrl]);
 
-  // Optimized audio event handlers
-  const handleAudioLoadedMetadata = useCallback(() => {
-    if (audioRef.current) {
-      setAudioDuration(audioRef.current.duration);
-    }
-  }, []);
-
-  const handleAudioTimeUpdate = useCallback(() => {
-    if (audioRef.current) {
-      setPlaybackTime(audioRef.current.currentTime);
-    }
-  }, []);
-
-  const handleAudioEnded = useCallback(() => {
-    setIsPlaying(false);
-    setPlaybackTime(0);
-  }, []);
-
-  // Optimized form submission
+  // Form submission
   const handleSubmit = useCallback(async () => {
-    console.log('🚀 Modal handleSubmit called');
-    
-    // Double-check validation before submission
     if (!validateCurrentStep()) {
-      console.log('❌ Modal handleSubmit: validateCurrentStep failed');
+      setError('Please complete all required fields');
       return;
-    }
-    
-    // Additional check for Step 5 requirements
-    if (currentStep === 5) {
-      const hasDocuments = uploadedFiles.length > 0;
-      const hasGPS = formData.gpsLatitude && formData.gpsLongitude;
-      
-      console.log('🔍 Modal handleSubmit Step 5 check:', {
-        hasDocuments,
-        hasGPS,
-        uploadedFilesCount: uploadedFiles.length,
-        gpsLat: formData.gpsLatitude,
-        gpsLng: formData.gpsLongitude
-      });
-      
-      if (!hasDocuments) {
-        setError('Please upload at least one document before submitting');
-        return;
-      }
-      
-      if (!hasGPS) {
-        setError('Please provide GPS location before submitting');
-        return;
-      }
     }
 
     setLoading(true);
     setError('');
 
     try {
-      let voiceRecordingUrl: string | null = null;
-      let voiceRecordingDuration: number | null = null;
-      let uploadedAttachments: {fileName: string, fileUrl: string, fileType: string, fileSize: number, storagePath?: string}[] = [];
-
-      // Upload voice recording first
+      const formDataToSubmit = new FormData();
+      
+      // Add form fields
+      // Add user ID
+      formDataToSubmit.append('userId', userId);
+      
+      formDataToSubmit.append('mainCategory', formData.mainCategory);
+      formDataToSubmit.append('caseTitle', formData.caseTitle);
+      formDataToSubmit.append('name', formData.name);
+      formDataToSubmit.append('email', formData.email);
+      formDataToSubmit.append('phoneNumber', formData.phoneNumber);
+      formDataToSubmit.append('caseDescription', formData.caseDescription);
+      
+      if (formData.gpsLatitude) {
+        formDataToSubmit.append('gpsLatitude', formData.gpsLatitude.toString());
+      }
+      if (formData.gpsLongitude) {
+        formDataToSubmit.append('gpsLongitude', formData.gpsLongitude.toString());
+      }
+      if (formData.capturedAddress) {
+        formDataToSubmit.append('capturedAddress', formData.capturedAddress);
+      }
+      
+      // Add voice recording
       if (recordedAudio) {
-        try {
-          // Create FormData for file upload
-          const audioFormData = new FormData();
-          audioFormData.append('file', recordedAudio);
-          audioFormData.append('caseId', 'temp-case-id');
-          
-          const uploadResult = await fetch('/api/upload', {
-            method: 'POST',
-            body: audioFormData // Don't set Content-Type header for FormData
-          });
-
-          const uploadData = await uploadResult.json();
-          
-          if (uploadData.success) {
-            voiceRecordingUrl = uploadData.data.fileUrl;
-            voiceRecordingDuration = recordingTime;
-            console.log('✅ Voice recording uploaded successfully:', {
-              fileName: uploadData.data.fileName,
-              fileType: uploadData.data.fileType,
-              fileSize: uploadData.data.fileSize
-            });
-          } else {
-            console.error('❌ Voice upload failed:', uploadData.error);
-            console.error('📋 Audio file details:', {
-              fileName: recordedAudio.name,
-              fileType: recordedAudio.type,
-              fileSize: recordedAudio.size
-            });
-            
-            // Provide more specific error messages for iOS Safari
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-            const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome|CriOS|FxiOS/.test(navigator.userAgent);
-            
-            if (isIOS && isSafari) {
-              if (uploadData.error?.includes('File type not allowed')) {
-                setError('iOS Safari audio format not supported. Please try recording again or use a different browser.');
-              } else {
-                setError('Failed to upload voice recording on iOS Safari: ' + (uploadData.error || 'Unknown error'));
-              }
-            } else {
-              setError('Failed to upload voice recording: ' + (uploadData.error || 'Unknown error'));
-            }
-            setLoading(false);
-            return;
-          }
-        } catch (error) {
-          console.error('Error uploading audio to Firebase:', error);
-          setError('Failed to upload voice recording. Please try again.');
-          setLoading(false);
-          return;
-        }
+        formDataToSubmit.append('voiceRecording', recordedAudio);
       }
-
-      // Upload documents
-      if (uploadedFiles.length > 0) {
-        console.log('📤 Starting document upload:', uploadedFiles.length, 'files');
-        
-        for (const file of uploadedFiles) {
-          try {
-            const docFormData = new FormData();
-            docFormData.append('file', file);
-            docFormData.append('caseId', 'temp-case-id');
-            
-            const docUploadResult = await fetch('/api/upload', {
-              method: 'POST',
-              body: docFormData
-            });
-
-            const docUploadData = await docUploadResult.json();
-            
-            if (docUploadData.success) {
-              uploadedAttachments.push({
-                fileName: file.name,
-                fileUrl: docUploadData.data.fileUrl,
-                fileType: file.type,
-                fileSize: file.size,
-                storagePath: docUploadData.data.storagePath || null
-              });
-              console.log('✅ Document uploaded successfully:', file.name);
-            } else {
-              console.error('Document upload failed:', file.name, docUploadData.error);
-            }
-          } catch (error) {
-            console.error('Error uploading document:', file.name, error);
-          }
-        }
-        
-        console.log('📊 Document upload completed:', uploadedAttachments.length, 'of', uploadedFiles.length);
-      }
-
-      const caseResponse = await fetch('/api/cases', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          ...formData,
-          admissionDate: formData.admissionDate.toISOString(),
-          dischargeDate: formData.dischargeDate?.toISOString(),
-          voiceRecordingUrl,
-          voiceRecordingDuration,
-          attachments: uploadedAttachments // Send uploaded documents
-        })
+      
+      // Add attachments
+      uploadedFiles.forEach((file, index) => {
+        formDataToSubmit.append(`attachment_${index}`, file);
       });
 
-      const caseData: ApiResponse<{ caseId: string }> = await caseResponse.json();
+      const response = await fetch('/api/cases', {
+        method: 'POST',
+        body: formDataToSubmit,
+      });
 
-      if (caseData.success && caseData.data?.caseId) {
-        onSuccess(caseData.data.caseId);
+      const result: ApiResponse<{ caseId: string }> = await response.json();
+
+      if (result.success && result.data?.caseId) {
+        onSuccess(result.data.caseId);
+        handleClose();
       } else {
-        setError(caseData.error || 'Failed to submit case');
+        setError(result.error || 'Failed to submit case');
       }
     } catch (error) {
-      setError('Network error. Please try again.');
+      setError('An error occurred while submitting your case');
     } finally {
       setLoading(false);
     }
-  }, [userId, formData, recordedAudio, recordingTime, validateCurrentStep, onSuccess, uploadedFiles]);
+  }, [formData, recordedAudio, uploadedFiles, validateCurrentStep, onSuccess]);
 
-  // Simple utility functions
-  const formatDuration = (seconds: number) => {
+  // Navigation
+  const nextStep = useCallback(() => {
+    if (validateCurrentStep()) {
+      setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+      setError('');
+    } else {
+      setError('Please complete all required fields');
+    }
+  }, [validateCurrentStep]);
+
+  const prevStep = useCallback(() => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+    setError('');
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setFormData(INITIAL_FORM_DATA);
+    setUploadedFiles([]);
+    setRecordedAudio(null);
+    setAudioUrl('');
+    setIsRecording(false);
+    setRecordingTime(0);
+    setIsPlaying(false);
+    setCurrentStep(1);
+    setError('');
+    onClose();
+  }, [onClose]);
+
+  // Format recording time
+  const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const formatDate = (date: Date | string | undefined) => {
-    if (!date) return '';
-    return new Date(date).toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    });
+  const getCategoryIcon = (categoryId: string) => {
+    switch (categoryId) {
+      case 'education': return <GraduationCap className="h-6 w-6" />;
+      case 'banking': return <Building className="h-6 w-6" />;
+      case 'gst': return <Receipt className="h-6 w-6" />;
+      case 'income-tax': return <Banknote className="h-6 w-6" />;
+      case 'corruption': return <Shield className="h-6 w-6" />;
+      case 'political': return <Landmark className="h-6 w-6" />;
+      default: return <FileText className="h-6 w-6" />;
+    }
   };
-
-  // Optimized navigation
-  const handleNext = useCallback(() => {
-    if (!validateCurrentStep()) return;
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
-    }
-  }, [currentStep, validateCurrentStep]);
-
-  const handlePrevious = useCallback(() => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  }, [currentStep]);
-
-  // Cleanup effect
-  useEffect(() => {
-    return () => {
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-      }
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-      }
-    };
-  }, []);
-
-  // Simple render step function
-  const renderStep = useCallback(() => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <div className="space-y-6 px-2 sm:px-0">
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-600 text-white text-lg font-bold">
-                1
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mt-3">Personal Information</h3>
-              <p className="text-gray-600">Tell us about the patient</p>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="patientName" className="text-sm font-medium">Patient Full Name *</Label>
-                <Input
-                  id="patientName"
-                  value={formData.patientName}
-                  onChange={(e) => updateFormData('patientName', e.target.value)}
-                  placeholder="Enter patient's full name"
-                  className="focus:ring-blue-500 h-11"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="patientAge" className="text-sm font-medium">Age *</Label>
-                <Input
-                  id="patientAge"
-                  type="number"
-                  value={formData.patientAge || ''}
-                  onChange={(e) => updateFormData('patientAge', parseInt(e.target.value) || 0)}
-                  placeholder="Enter age"
-                  min={1}
-                  max={120}
-                  className="focus:ring-blue-500 h-11"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Gender *</Label>
-              <RadioGroup
-                value={formData.patientGender}
-                onValueChange={(value) => updateFormData('patientGender', value as Gender)}
-                className="flex flex-col sm:flex-row gap-3 sm:gap-4"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="MALE" id="male" className="w-4 h-4" />
-                  <Label htmlFor="male" className="text-sm cursor-pointer">Male</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="FEMALE" id="female" className="w-4 h-4" />
-                  <Label htmlFor="female" className="text-sm cursor-pointer">Female</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="OTHER" id="other" className="w-4 h-4" />
-                  <Label htmlFor="other" className="text-sm cursor-pointer">Other</Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="relationship" className="text-sm font-medium">Your Relationship to Patient *</Label>
-              <Select value={formData.relationshipToPatient} onValueChange={(value) => updateFormData('relationshipToPatient', value)}>
-                <SelectTrigger className="focus:ring-blue-500 h-11">
-                  <SelectValue placeholder="Select relationship" />
-                </SelectTrigger>
-                <SelectContent>
-                  {RELATIONSHIPS.map((relationship) => (
-                    <SelectItem key={relationship} value={relationship}>{relationship}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        );
-      case 2:
-        return (
-          <div className="space-y-6 px-2 sm:px-0">
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-600 text-white text-lg font-bold">
-                2
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mt-3">Hospital Information</h3>
-              <p className="text-gray-600">Provide hospital details</p>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="hospitalName" className="text-sm font-medium">Hospital Name *</Label>
-                <Input
-                  id="hospitalName"
-                  value={formData.hospitalName}
-                  onChange={(e) => updateFormData('hospitalName', e.target.value)}
-                  placeholder="Enter hospital name"
-                  className="focus:ring-blue-500 h-11"
-                />
-              </div>
-              
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="hospitalAddress" className="text-sm font-medium">Hospital Address *</Label>
-                <Textarea
-                  id="hospitalAddress"
-                  value={formData.hospitalAddress}
-                  onChange={(e) => updateFormData('hospitalAddress', e.target.value)}
-                  placeholder="Enter complete hospital address"
-                  rows={3}
-                  className="focus:ring-blue-500 resize-none"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="hospitalState" className="text-sm font-medium">State *</Label>
-                <Select value={formData.hospitalState} onValueChange={(value) => updateFormData('hospitalState', value)}>
-                  <SelectTrigger className="focus:ring-blue-500 h-11">
-                    <SelectValue placeholder="Select state" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {INDIAN_STATES.map((state) => (
-                      <SelectItem key={state} value={state}>{state}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="department" className="text-sm font-medium">Department *</Label>
-                <Select value={formData.department} onValueChange={(value) => updateFormData('department', value)}>
-                  <SelectTrigger className="focus:ring-blue-500 h-11">
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DEPARTMENTS.map((dept) => (
-                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="hospitalRegistrationNo" className="text-sm font-medium">Registration Number (Optional)</Label>
-                <Input
-                  id="hospitalRegistrationNo"
-                  value={formData.hospitalRegistrationNo}
-                  onChange={(e) => updateFormData('hospitalRegistrationNo', e.target.value)}
-                  placeholder="Enter registration number (optional)"
-                  className="focus:ring-blue-500 h-11"
-                />
-              </div>
-            </div>
-          </div>
-        );
-      case 3:
-        return (
-          <div className="space-y-6 px-2 sm:px-0">
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-600 text-white text-lg font-bold">
-                3
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mt-3">Treatment Timeline</h3>
-              <p className="text-gray-600">Provide treatment dates</p>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="admissionDate" className="text-sm font-medium">Admission Date *</Label>
-                <Input
-                  id="admissionDate"
-                  type="date"
-                  value={formData.admissionDate ? formData.admissionDate.toISOString().split('T')[0] : ''}
-                  onChange={(e) => updateFormData('admissionDate', new Date(e.target.value))}
-                  className="focus:ring-blue-500 h-11"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2 mb-3">
-                  <Checkbox
-                    id="isDischarged"
-                    checked={formData.isDischarged}
-                    onCheckedChange={(checked) => updateFormData('isDischarged', checked)}
-                    className="w-4 h-4"
-                  />
-                  <Label htmlFor="isDischarged" className="text-sm font-medium cursor-pointer">Patient was discharged</Label>
-                </div>
-                <Label htmlFor="dischargeDate" className="text-sm font-medium">Discharge Date *</Label>
-                <Input
-                  id="dischargeDate"
-                  type="date"
-                  value={formData.isDischarged && formData.dischargeDate ? formData.dischargeDate.toISOString().split('T')[0] : ''}
-                  onChange={(e) => updateFormData('dischargeDate', new Date(e.target.value))}
-                  placeholder="Discharge date"
-                  className="focus:ring-blue-500 h-11"
-                  disabled={!formData.isDischarged}
-                />
-                {!formData.isDischarged && (
-                  <p className="text-xs text-gray-500 mt-1">Check "Patient was discharged" to enable discharge date</p>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      case 4:
-        return (
-          <div className="space-y-6 px-2 sm:px-0">
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-600 text-white text-lg font-bold">
-                4
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mt-3">Complaint Details</h3>
-              <p className="text-gray-600">Describe your complaint in detail</p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Issue Categories *</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {ISSUE_CATEGORIES.map((category) => (
-                  <div key={category} className="flex items-center space-x-2 p-2 rounded border border-gray-200 hover:bg-gray-50">
-                    <Checkbox
-                      id={category}
-                      checked={formData.issueCategories.includes(category)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          updateFormData('issueCategories', [...formData.issueCategories, category]);
-                        } else {
-                          updateFormData('issueCategories', formData.issueCategories.filter(c => c !== category));
-                        }
-                      }}
-                      className="w-4 h-4"
-                    />
-                    <Label htmlFor={category} className="text-sm cursor-pointer flex-1">{category}</Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Label className="text-sm font-medium">Voice Recording *</Label>
-                <Badge variant="destructive" className="text-xs">Required</Badge>
-              </div>
-              <div className="border border-blue-200 rounded-lg p-4 sm:p-6 bg-blue-50">
-                <div className="mb-4">
-                  <p className="text-sm text-blue-800 font-medium mb-2">
-                    📱 Voice recording is required for your complaint
-                  </p>
-                  <p className="text-xs text-blue-700">
-                    iOS Safari users: Please allow microphone access when prompted. If denied, go to Settings {'>'} Safari {'>'} Microphone {'>'} Allow. 
-                    If you encounter upload issues, try recording again or use Chrome/Firefox for better compatibility.
-                  </p>
-                  <p className="text-xs text-blue-700 mt-1">
-                    Android users: Please allow microphone access when prompted by your browser. Make sure you're using a secure (HTTPS) connection. 
-                    If permission is denied, check your browser settings and app permissions.
-                  </p>
-                </div>
-                
-                <div className="flex flex-col items-center">
-                  {audioUrl ? (
-                    <div className="w-full space-y-4">
-                      <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-white rounded-lg border gap-4">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                            <CheckCircle className="h-5 w-5 text-green-600" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-green-800">Voice Recording Saved</p>
-                            <p className="text-sm text-gray-500">Duration: {formatTime(recordingTime)}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <audio controls className="h-8" src={audioUrl}>
-                            Your browser does not support the audio element.
-                          </audio>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={resetRecording}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center">
-                      <div className="mb-4">
-                        <Mic className="h-12 w-12 text-red-600 mx-auto mb-2 animate-pulse" />
-                      </div>
-                      <Button
-                        onClick={startRecording}
-                        disabled={isRecording}
-                        size="lg"
-                        className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto text-white font-semibold py-6 text-lg"
-                      >
-                        {isRecording ? (
-                          <>
-                            <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse" />
-                            Recording... {formatTime(recordingTime)}
-                          </>
-                        ) : (
-                          <>
-                            <Mic className="h-5 w-5 mr-2" />
-                            Start Voice Recording (Required)
-                          </>
-                        )}
-                      </Button>
-                      {isRecording && (
-                        <Button
-                          onClick={stopRecording}
-                          variant="outline"
-                          className="ml-0 sm:ml-2 mt-2 sm:mt-0"
-                        >
-                          <Square className="h-4 w-4 mr-2" />
-                          Stop
-                        </Button>
-                      )}
-                      <div className="mt-3 space-y-1">
-                        <p className="text-sm text-gray-600 font-medium">
-                          📱 Tap the button above to record your voice statement
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Maximum recording time: 5 minutes
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="detailedDescription" className="text-sm font-medium">Detailed Description (Optional)</Label>
-              <Textarea
-                id="detailedDescription"
-                value={formData.detailedDescription}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  console.log('Description changed:', value);
-                  updateFormData('detailedDescription', value);
-                }}
-                placeholder="Please provide a detailed description of your complaint (optional)..."
-                rows={6}
-                className="focus:ring-blue-500 resize-none"
-              />
-              <div className="text-sm text-gray-500 mt-1">
-                {formData.detailedDescription.length} characters (optional)
-              </div>
-            </div>
-          </div>
-        );
-      case 5:
-        return (
-          <div className="space-y-6 px-2 sm:px-0">
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-600 text-white text-lg font-bold">
-                5
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mt-3">Location & Evidence</h3>
-              <p className="text-red-600 font-medium">Both location and documents are REQUIRED to submit your case</p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="capturedAddress" className="text-sm font-medium">Captured Address</Label>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Textarea
-                  id="capturedAddress"
-                  value={formData.capturedAddress}
-                  onChange={(e) => updateFormData('capturedAddress', e.target.value)}
-                  placeholder="Enter address or let us capture automatically"
-                  rows={3}
-                  className="focus:ring-blue-500 resize-none flex-1"
-                />
-                <Button
-                  type="button"
-                  onClick={getCurrentLocation}
-                  variant="outline"
-                  className="px-4 py-2 h-auto whitespace-nowrap w-full sm:w-auto bg-red-600 text-white hover:bg-red-700"
-                  title="Capture GPS Location (Required)"
-                >
-                  <MapPin className="h-4 w-4 mr-2" />
-                  Capture GPS Location *
-                </Button>
-              </div>
-              {formData.gpsLatitude && formData.gpsLongitude && (
-                <div className="text-sm text-green-600 bg-green-50 p-3 rounded border border-green-200">
-                  ✓ Location captured: {formData.gpsLatitude.toFixed(6)}, {formData.gpsLongitude.toFixed(6)}
-                </div>
-              )}
-            </div>
-              
-            <div className="space-y-2">
-              <Label htmlFor="fileUpload" className="text-sm font-medium">Upload Documents <span className="text-red-500">*</span> (Required)</Label>
-              <div 
-                className="border-2 border-dashed border-blue-300 bg-blue-50 rounded-lg p-4 sm:p-6 cursor-pointer hover:border-blue-500 hover:bg-blue-100 transition-colors"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept="image/*,.pdf"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-                <div className="text-center">
-                  <Upload className="h-8 w-8 text-blue-500 mx-auto mb-2" />
-                  <p className="text-blue-700 font-medium">Click to upload files</p>
-                  <p className="text-sm text-gray-600">Images and PDFs up to 50MB</p>
-                </div>
-              </div>
-
-              {uploadedFiles.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Uploaded Files</Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {uploadedFiles.map((file, index) => (
-                      <div key={index} className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center flex-1 min-w-0">
-                            <FileText className="h-4 w-4 text-blue-600 mr-2 flex-shrink-0" />
-                            <span className="text-sm font-medium truncate">{file.name}</span>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => removeFile(index)}
-                            className="ml-2 flex-shrink-0"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      default:
-        return null;
-    }
-  }, [currentStep, formData, uploadedFiles, updateFormData, removeFile, 
-      audioUrl, isRecording, recordingTime, recordedAudio, 
-      startRecording, stopRecording, formatTime, resetRecording, getCurrentLocation]);
-
-  // Cleanup effect
-  useEffect(() => {
-    return () => {
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-      }
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-      }
-    };
-  }, []);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-bold">File a New Case</h3>
-              <p className="text-blue-100">Step {currentStep} of {totalSteps}</p>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="text-white hover:bg-blue-800"
-            >
-              ×
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b p-6 pb-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-gray-900">File a Case</h2>
+            <Button variant="ghost" size="sm" onClick={handleClose}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Close
             </Button>
           </div>
-        </CardHeader>
-        
-        <CardContent className="flex-1 overflow-y-auto p-6">
-          {/* Progress Bar */}
-          <div className="mb-6">
-            <Progress value={progressPercentage} className="w-full" />
-            <div className="flex justify-between text-sm text-gray-600 mt-2">
-              <span>Step {currentStep} of {totalSteps}</span>
-              <span>{Math.round(progressPercentage)}% Complete</span>
-            </div>
-          </div>
+          
+          <Progress value={progressPercentage} className="w-full" />
+          <p className="text-sm text-gray-600 mt-2">Step {currentStep} of {totalSteps}</p>
+        </div>
 
-          {/* Error Display */}
+        <div className="p-6">
           {error && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertDescription>{error}</AlertDescription>
+            <Alert className="mb-6 border-red-200 bg-red-50">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-700">{error}</AlertDescription>
             </Alert>
           )}
 
-          {/* Form Steps */}
-          <div className="mb-8">
-            {renderStep()}
-          </div>
+          {/* Step 1: Category Selection */}
+          {currentStep === 1 && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Select Category</h3>
+                <p className="text-gray-600 mb-4">Choose the category that best describes your issue</p>
+              </div>
+              
+              <RadioGroup value={formData.mainCategory} onValueChange={(value) => updateFormData('mainCategory', value)}>
+                {MAIN_CATEGORIES.map((category) => (
+                  <div key={category.id} className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <RadioGroupItem value={category.id} id={category.id} />
+                    <div className="flex items-center space-x-3 flex-1">
+                      {getCategoryIcon(category.id)}
+                      <div>
+                        <Label htmlFor={category.id} className="font-medium cursor-pointer">
+                          {category.name}
+                        </Label>
+                        <p className="text-sm text-gray-600">{category.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </RadioGroup>
+            </div>
+          )}
+
+          {/* Step 2: Personal Information */}
+          {currentStep === 2 && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Personal Information</h3>
+                <p className="text-gray-600 mb-4">Tell us about yourself</p>
+              </div>
+              
+              <div>
+                <Label htmlFor="caseTitle">Case Title *</Label>
+                <Input
+                  id="caseTitle"
+                  value={formData.caseTitle}
+                  onChange={(e) => updateFormData('caseTitle', e.target.value)}
+                  placeholder="Brief title for your case"
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="name">Full Name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => updateFormData('name', e.target.value)}
+                  placeholder="Your full name"
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="email">Email Address *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => updateFormData('email', e.target.value)}
+                  placeholder="your.email@example.com"
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="phoneNumber">Phone Number *</Label>
+                <Input
+                  id="phoneNumber"
+                  value={formData.phoneNumber}
+                  onChange={(e) => updateFormData('phoneNumber', e.target.value)}
+                  placeholder="Your phone number"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Case Details */}
+          {currentStep === 3 && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Case Details</h3>
+                <p className="text-gray-600 mb-4">Describe your issue in detail</p>
+              </div>
+              
+              <div>
+                <Label htmlFor="caseDescription">Case Description *</Label>
+                <Textarea
+                  id="caseDescription"
+                  value={formData.caseDescription}
+                  onChange={(e) => updateFormData('caseDescription', e.target.value)}
+                  placeholder="Please provide a detailed description of your issue..."
+                  rows={6}
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <Label>Voice Recording (Optional)</Label>
+                <div className="mt-2 p-4 border rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    {!isRecording && !recordedAudio && (
+                      <Button onClick={startRecording} variant="outline">
+                        <Mic className="h-4 w-4 mr-2" />
+                        Start Recording
+                      </Button>
+                    )}
+                    
+                    {isRecording && (
+                      <Button onClick={stopRecording} variant="destructive">
+                        <Square className="h-4 w-4 mr-2" />
+                        Stop Recording ({formatTime(recordingTime)})
+                      </Button>
+                    )}
+                    
+                    {recordedAudio && (
+                      <div className="flex items-center space-x-2">
+                        <Button onClick={togglePlayback} variant="outline" size="sm">
+                          {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                        </Button>
+                        <span className="text-sm text-gray-600">Voice recording ready</span>
+                        <Button onClick={() => {
+                          setRecordedAudio(null);
+                          setAudioUrl('');
+                          updateFormData('voiceRecording', undefined);
+                        }} variant="ghost" size="sm">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {audioUrl && (
+                    <audio
+                      ref={audioRef}
+                      src={audioUrl}
+                      onEnded={() => setIsPlaying(false)}
+                      className="hidden"
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Location & Attachments */}
+          {currentStep === 4 && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Location & Evidence</h3>
+                <p className="text-gray-600 mb-4">Add supporting documents and location</p>
+              </div>
+              
+              <div>
+                <Label>Location (Optional)</Label>
+                <div className="mt-2 space-y-2">
+                  <Button onClick={getCurrentLocation} variant="outline" className="w-full">
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Get Current Location
+                  </Button>
+                  {formData.capturedAddress && (
+                    <p className="text-sm text-green-600">✓ {formData.capturedAddress}</p>
+                  )}
+                </div>
+              </div>
+              
+              <div>
+                <Label>Supporting Documents (Optional)</Label>
+                <div className="mt-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*,.pdf"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="w-full">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Documents
+                  </Button>
+                </div>
+                
+                {uploadedFiles.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    {uploadedFiles.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <span className="text-sm truncate">{file.name}</span>
+                        <Button onClick={() => removeFile(index)} variant="ghost" size="sm">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Navigation */}
-          <div className="flex justify-between mt-6">
+          <div className="flex justify-between mt-8">
             <Button
               variant="outline"
-              onClick={handlePrevious}
+              onClick={prevStep}
               disabled={currentStep === 1}
-              className="flex items-center"
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
               Previous
             </Button>
             
-            <Button
-              onClick={currentStep === totalSteps ? handleSubmit : handleNext}
-              disabled={loading || !validateCurrentStep()}
-              className="flex items-center"
-            >
-              {currentStep === totalSteps ? (
-                <>
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  {loading ? 'Submitting...' : 'Submit Case'}
-                </>
-              ) : (
-                <>
-                  Next
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </>
-              )}
-            </Button>
+            {currentStep < totalSteps ? (
+              <Button onClick={nextStep}>
+                Next
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            ) : (
+              <Button onClick={handleSubmit} disabled={loading}>
+                {loading ? 'Submitting...' : 'Submit Case'}
+              </Button>
+            )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 });

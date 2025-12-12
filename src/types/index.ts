@@ -18,26 +18,17 @@ export interface Case {
   userId: string;
   status: CaseStatus;
   
-  // Patient Info
-  patientName: string;
-  patientAge: number;
-  patientGender: Gender;
-  relationshipToPatient: string;
+  // Main Category
+  mainCategory: string;
   
-  // Hospital Info
-  hospitalName: string;
-  hospitalAddress: string;
-  hospitalState: string;
-  hospitalRegistrationNo?: string;
-  department: string;
+  // Personal Info
+  caseTitle: string;
+  name: string;
+  email: string;
+  phoneNumber: string;
   
-  // Timeline
-  admissionDate: Date;
-  dischargeDate?: Date;
-  isDischarged: boolean;
-  
-  // Complaint
-  detailedDescription: string;
+  // Case Details
+  caseDescription: string;
   voiceRecordingUrl?: string;
   voiceRecordingDuration?: number;
   
@@ -64,7 +55,6 @@ export interface Case {
   // Relations
   user?: User;
   reviewer?: User;
-  issueCategories?: CaseIssueCategory[];
 }
 
 export interface Attachment {
@@ -92,24 +82,7 @@ export interface Notification {
   relatedCase?: Case;
 }
 
-export interface CaseIssueCategory {
-  id: string;
-  caseId: string;
-  category: string;
-  
-  // Relations
-  case?: Case;
-}
 
-export interface Hospital {
-  id: string;
-  name: string;
-  address: string;
-  state: string;
-  registrationNumber?: string;
-  addedBy: string;
-  addedAt: Date;
-}
 
 export enum UserRole {
   USER = 'USER',
@@ -140,30 +113,20 @@ export enum NotificationType {
 
 // Form types
 export interface CaseFormData {
-  // Step 1: Personal Information
-  patientName: string;
-  patientAge: number;
-  patientGender: Gender;
-  relationshipToPatient: string;
+  // Step 1: Category Selection
+  mainCategory: string;
   
-  // Step 2: Hospital Information
-  hospitalName: string;
-  hospitalAddress: string;
-  hospitalState: string;
-  hospitalRegistrationNo?: string;
-  department: string;
+  // Step 2: Personal Information
+  caseTitle: string;
+  name: string;
+  email: string;
+  phoneNumber: string;
   
-  // Step 3: Treatment Timeline
-  admissionDate: Date;
-  isDischarged: boolean;
-  dischargeDate?: Date;
-  
-  // Step 4: Complaint Details
-  issueCategories: string[];
-  detailedDescription: string;
+  // Step 3: Case Details
+  caseDescription: string;
   voiceRecording?: File;
   
-  // Step 5: Location & Evidence
+  // Step 4: Location & Evidence
   gpsLatitude?: number;
   gpsLongitude?: number;
   capturedAddress?: string;
@@ -191,9 +154,8 @@ export interface CaseFilters {
     start: Date;
     end: Date;
   };
-  hospitalName?: string;
-  state?: string;
-  category?: string;
+  mainCategory?: string;
+  searchTerm?: string;
 }
 
 export interface ApiResponse<T> {

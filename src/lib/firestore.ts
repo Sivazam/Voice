@@ -177,11 +177,6 @@ export class FirestoreService {
       
       // Get related data
       const userDoc = await getDoc(doc(db, 'users', caseData.userId));
-      const categoriesQuery = query(
-        collection(db, 'caseIssueCategories'),
-        where('caseId', '==', caseId)
-      );
-      const categoriesSnapshot = await getDocs(categoriesQuery);
       const attachmentsQuery = query(
         collection(db, 'attachments'),
         where('caseId', '==', caseId)
@@ -192,7 +187,6 @@ export class FirestoreService {
         id: caseDoc.id,
         ...caseData,
         user: userDoc.exists() ? { id: userDoc.id, ...userDoc.data() } : null,
-        issueCategories: categoriesSnapshot.docs.map(catDoc => ({ id: catDoc.id, ...catDoc.data() })),
         attachments: attachmentsSnapshot.docs.map(attDoc => ({ id: attDoc.id, ...attDoc.data() }))
       };
     } catch (error) {
@@ -217,11 +211,6 @@ export class FirestoreService {
           const caseData = docSnapshot.data();
           
           // Get related data for each case
-          const categoriesQuery = query(
-            collection(db, 'caseIssueCategories'),
-            where('caseId', '==', docSnapshot.id)
-          );
-          const categoriesSnapshot = await getDocs(categoriesQuery);
           const attachmentsQuery = query(
             collection(db, 'attachments'),
             where('caseId', '==', docSnapshot.id)
@@ -231,7 +220,6 @@ export class FirestoreService {
           return {
             id: docSnapshot.id,
             ...caseData,
-            issueCategories: categoriesSnapshot.docs.map(cat => ({ id: cat.id, ...cat.data() })),
             attachments: attachmentsSnapshot.docs.map(att => ({ id: att.id, ...att.data() })),
             _count: {
               attachments: attachmentsSnapshot.size
@@ -264,11 +252,6 @@ export class FirestoreService {
           
           // Get related data
           const userDoc = await getDoc(doc(db, 'users', caseData.userId));
-          const categoriesQuery = query(
-            collection(db, 'caseIssueCategories'),
-            where('caseId', '==', docSnapshot.id)
-          );
-          const categoriesSnapshot = await getDocs(categoriesQuery);
           const attachmentsQuery = query(
             collection(db, 'attachments'),
             where('caseId', '==', docSnapshot.id)
@@ -283,7 +266,6 @@ export class FirestoreService {
               fullName: (userDoc.data() as any).fullName || 'Unknown User',
               phoneNumber: userDoc.data().phoneNumber 
             } : null,
-            issueCategories: categoriesSnapshot.docs.map(cat => ({ id: cat.id, ...cat.data() })),
             attachments: attachmentsSnapshot.docs.map(att => ({ id: att.id, ...att.data() })),
             _count: {
               attachments: attachmentsSnapshot.size
@@ -315,29 +297,6 @@ export class FirestoreService {
       return await this.getCase(caseId);
     } catch (error) {
       console.error('Error updating case:', error);
-      throw error;
-    }
-  }
-
-  // Issue Category operations
-  static async createIssueCategory(categoryData: any) {
-    try {
-      const docRef = await addDoc(collection(db, 'caseIssueCategories'), categoryData);
-      return { id: docRef.id, ...categoryData };
-    } catch (error) {
-      console.error('Error creating issue category:', error);
-      throw error;
-    }
-  }
-
-  static async createIssueCategories(categories: any[]) {
-    try {
-      const results = await Promise.all(
-        categories.map(category => this.createIssueCategory(category))
-      );
-      return results;
-    } catch (error) {
-      console.error('Error creating issue categories:', error);
       throw error;
     }
   }

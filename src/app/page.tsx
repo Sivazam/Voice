@@ -16,6 +16,7 @@ import { PublicCasesBrowser } from '@/components/cases/public-cases-browser';
 import { CaseDetailsModal } from '@/components/cases/case-details-modal';
 import { useAuthStore } from '@/store/auth-store';
 import { User as UserType, Case } from '@/types';
+import { MAIN_CATEGORIES } from '@/lib/constants';
 
 export default React.memo(function Home() {
   const [activeTab, setActiveTab] = useState<'home' | 'features' | 'about' | 'dashboard' | 'admin' | 'public-cases'>('home');
@@ -61,7 +62,7 @@ export default React.memo(function Home() {
     {
       icon: FileText,
       title: 'File Cases',
-      description: 'Report hospital malpractices, overcharging, and other healthcare issues',
+      description: 'Report issues across multiple categories - education, banking, GST, tax, corruption, and political matters',
       color: 'text-blue-600',
       bgGradient: 'from-blue-500 to-blue-600'
     },
@@ -82,7 +83,7 @@ export default React.memo(function Home() {
     {
       icon: Users,
       title: 'Public Transparency',
-      description: 'Access approved cases to make informed healthcare decisions',
+      description: 'Access approved cases to make informed decisions',
       color: 'text-orange-600',
       bgGradient: 'from-orange-500 to-orange-600'
     }
@@ -95,14 +96,7 @@ export default React.memo(function Home() {
     { label: 'Active Users', value: '5,678', icon: Users, color: 'text-purple-600', bgColor: 'bg-purple-50' }
   ];
 
-  const issueCategories = [
-    'No Prescription Provided',
-    'GST Discrepancy',
-    'Overcharging',
-    'Unused Medications Not Returned',
-    'Forced Medication Purchase',
-    'Lack of Transparency'
-  ];
+  
 
   const handleLoginSuccess = React.useCallback((userData: UserType) => {
     login(userData);
@@ -375,19 +369,18 @@ export default React.memo(function Home() {
           <div className="text-center max-w-4xl mx-auto">
             <Badge className="mb-6 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 hover:from-blue-200 hover:to-blue-300 px-6 py-3 rounded-full text-sm font-medium">
               <Shield className="h-4 w-4 mr-2" />
-              Healthcare Transparency Platform
+              multi-category justice system
             </Badge>
             
             <h2 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
               Your Voice for
               <span className="bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
-                {' '}Better Healthcare
+                Better Society for All
               </span>
             </h2>
             
             <p className="text-xl text-gray-600 mb-8 leading-relaxed max-w-3xl mx-auto">
-              Report hospital malpractices, track cases, and access transparent healthcare information. 
-              Join thousands of patients fighting for their rights.
+              Join thousands of voices fighting for their rights across education, banking, GST, income tax, corruption, and political issues. Report malpractices, track cases, and access transparent information for better decision-making.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
@@ -475,7 +468,7 @@ export default React.memo(function Home() {
         <section className="container mx-auto px-4 py-16">
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-2">My Cases</h2>
-            <p className="text-gray-600">Track and manage your healthcare complaints</p>
+            <p className="text-gray-600">Track and manage your complaints</p>
           </div>
           
           <div className="mb-6">
@@ -514,7 +507,7 @@ export default React.memo(function Home() {
               Platform Features
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Comprehensive tools for healthcare transparency and patient rights
+              Comprehensive tools for transparency and justice across multiple categories
             </p>
           </div>
 
@@ -541,18 +534,21 @@ export default React.memo(function Home() {
             })}
           </div>
 
-          {/* Issue Categories */}
+          {/* Main Categories */}
           <div className="mb-16">
             <h3 className="text-2xl font-bold text-gray-900 mb-8 text-center">
-              Reportable Issues
+              Report Categories
             </h3>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {issueCategories.map((category, index) => (
-                <Card key={index} className="hover:shadow-md transition-all duration-300 border border-gray-100">
-                  <CardContent className="p-4">
-                    <div className="flex items-center space-x-3">
-                      <AlertCircle className="h-5 w-5 text-orange-500 flex-shrink-0" />
-                      <span className="text-gray-700 font-medium">{category}</span>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {MAIN_CATEGORIES.map((category) => (
+                <Card key={category.id} className="hover:shadow-md transition-all duration-300 border border-gray-100">
+                  <CardContent className="p-6">
+                    <div className="flex items-center space-x-4">
+                      <div className="text-3xl">{category.icon}</div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">{category.name}</h4>
+                        <p className="text-sm text-gray-600 mt-1">{category.description}</p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -571,7 +567,7 @@ export default React.memo(function Home() {
                 About Break Your Silence
               </h2>
               <p className="text-xl text-gray-600">
-                Empowering patients with transparency and accountability in healthcare
+                Empowering users with transparency and accountability in healthcare
               </p>
             </div>
 
@@ -585,7 +581,7 @@ export default React.memo(function Home() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-600 leading-relaxed">
-                    To create a transparent healthcare ecosystem where patients can report issues, 
+                    To create a transparent  ecosystem where users can report issues, 
                     track progress, and access verified information to make informed decisions about their care.
                   </p>
                 </CardContent>
@@ -631,7 +627,7 @@ export default React.memo(function Home() {
             Ready to Make a Difference?
           </h2>
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Join thousands of patients fighting for better healthcare
+            Join thousands of user fighting for better society
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
@@ -696,7 +692,10 @@ export default React.memo(function Home() {
         <CaseSubmissionModal
           isOpen={showCaseForm}
           onClose={() => setShowCaseForm(false)}
-          userId={user.id}
+          userId={user?.id || ''}
+          userPhone={user?.phoneNumber}
+          userName={user?.fullName}
+          userEmail={user?.email}
           onSuccess={handleCaseSubmitSuccess}
         />
       )}

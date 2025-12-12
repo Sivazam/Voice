@@ -16,18 +16,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Simplified approach - just get cases without complex queries
-    console.log('📥 Using simplified case retrieval');
-    const cases = await FirestoreService.getAllCases() as any[];
-    console.log('📥 All cases count:', cases?.length || 0);
+    // Use the proper getUserCases method that handles the new case structure
+    console.log('📥 Using getUserCases method for new structure');
+    const cases = await FirestoreService.getUserCases(userId);
+    console.log('📥 User cases retrieved:', cases?.length || 0);
     
-    // Filter cases by userId on client side
-    const userCases = cases.filter(case_ => case_.userId === userId);
-    console.log('📥 Filtered user cases count:', userCases?.length || 0);
-
     return NextResponse.json({
       success: true,
-      data: userCases
+      data: cases
     });
   } catch (error) {
     console.error('Get user cases error:', error);

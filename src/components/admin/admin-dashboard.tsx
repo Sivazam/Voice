@@ -89,8 +89,8 @@ export function AdminDashboard({ adminId, userRole = 'ADMIN', onViewCaseDetails 
 
   const filteredCases = cases.filter(case_ => {
     const matchesSearch = searchTerm === '' || 
-      case_.hospitalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      case_.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      case_.caseTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      case_.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       case_.user?.fullName.toLowerCase().includes(searchTerm.toLowerCase());
 
     return matchesSearch;
@@ -142,7 +142,7 @@ export function AdminDashboard({ adminId, userRole = 'ADMIN', onViewCaseDetails 
             {userRole === 'SUPERADMIN' ? 'Super Admin Dashboard' : 'Admin Dashboard'}
           </h1>
           <p className="text-gray-600">
-            {userRole === 'SUPERADMIN' ? 'Manage users and review healthcare complaints' : 'Review and manage healthcare complaints'}
+            {userRole === 'SUPERADMIN' ? 'Manage users and review cases' : 'Review and manage cases'}
           </p>
         </div>
         <Badge className={`${userRole === 'SUPERADMIN' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'} text-lg px-4 py-2`}>
@@ -253,7 +253,7 @@ export function AdminDashboard({ adminId, userRole = 'ADMIN', onViewCaseDetails 
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
-                      placeholder="Search by hospital, patient, or case ID..."
+                      placeholder="Search by case title, name, or case ID..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10"
@@ -322,7 +322,7 @@ export function AdminDashboard({ adminId, userRole = 'ADMIN', onViewCaseDetails 
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="text-lg font-semibold text-gray-900">
-                              {case_.hospitalName}
+                              {case_.caseTitle}
                             </h3>
                             <Badge className={statusColors[case_.status]}>
                               <StatusIcon className="h-3 w-3 mr-1" />
@@ -333,8 +333,8 @@ export function AdminDashboard({ adminId, userRole = 'ADMIN', onViewCaseDetails 
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-sm text-gray-600 mb-3">
                             <div className="flex items-center">
                               <Users className="h-4 w-4 mr-2" />
-                              <span className="font-medium">Patient:</span>
-                              <span className="ml-1">{case_.patientName}</span>
+                              <span className="font-medium">Name:</span>
+                              <span className="ml-1">{case_.name}</span>
                             </div>
                             
                             <div className="flex items-center">
@@ -344,8 +344,8 @@ export function AdminDashboard({ adminId, userRole = 'ADMIN', onViewCaseDetails 
                             </div>
                             
                             <div className="flex items-center">
-                              <MapPin className="h-4 w-4 mr-2" />
-                              <span>{case_.hospitalState}</span>
+                              <span className="font-medium">Category:</span>
+                              <span className="ml-1">{case_.mainCategory}</span>
                             </div>
                             
                             <div className="flex items-center">
@@ -358,23 +358,8 @@ export function AdminDashboard({ adminId, userRole = 'ADMIN', onViewCaseDetails 
                             <span className="font-medium">Submitted by:</span> {case_.user?.fullName} ({case_.user?.phoneNumber})
                           </div>
 
-                          {case_.issueCategories && case_.issueCategories.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mb-3">
-                              {case_.issueCategories.slice(0, 3).map((category, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  {category.category}
-                                </Badge>
-                              ))}
-                              {case_.issueCategories.length > 3 && (
-                                <Badge variant="outline" className="text-xs">
-                                  +{case_.issueCategories.length - 3} more
-                                </Badge>
-                              )}
-                            </div>
-                          )}
-
                           <div className="text-sm text-gray-700 line-clamp-3 max-h-16 overflow-hidden">
-                            {case_.detailedDescription}
+                            {case_.caseDescription}
                           </div>
                         </div>
 

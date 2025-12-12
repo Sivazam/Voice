@@ -1,57 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AttachmentService } from '@/lib/attachment-service';
 import { FirestoreService } from '@/lib/firestore';
-import { CaseStatus, Gender, User } from '@/types';
+import { CaseStatus, User } from '@/types';
 
-// Fixed attachment validation and error handling
+// Import FileUploadService for file upload functionality
+import { FileUploadService } from '@/lib/attachment-service';
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.json();
+    const formData = await request.formData();
     
-    console.log('📥 Received case submission data:', formData);
-    console.log('📥 Form data keys:', Object.keys(formData));
-    console.log('📥 Attachments field:', formData.attachments);
-    console.log('📥 Attachments type:', typeof formData.attachments);
-    console.log('📥 Attachments length:', formData.attachments?.length);
+    console.log('📥 Received case submission data');
     
-    const {
-      userId,
-      patientName,
-      patientAge,
-      patientGender,
-      relationshipToPatient,
-      hospitalName,
-      hospitalAddress,
-      hospitalState,
-      hospitalRegistrationNo,
-      department,
-      admissionDate,
-      isDischarged,
-      dischargeDate,
-      issueCategories,
-      detailedDescription,
-      gpsLatitude,
-      gpsLongitude,
-      capturedAddress,
-      voiceRecordingUrl,
-      voiceRecordingDuration,
-      attachments,
-      tempCaseId
-    } = formData;
-
+    // Extract form fields
+    const mainCategory = formData.get('mainCategory') as string;
+    const caseTitle = formData.get('caseTitle') as string;
+    const name = formData.get('name') as string;
+    const email = formData.get('email') as string;
+    const phoneNumber = formData.get('phoneNumber') as string;
+    const caseDescription = formData.get('caseDescription') as string;
+    const gpsLatitude = formData.get('gpsLatitude') as string;
+    const gpsLongitude = formData.get('gpsLongitude') as string;
+    const capturedAddress = formData.get('capturedAddress') as string;
+    
+    // Get user ID from auth store or session (for now, we'll get it from the request)
+    const userId = formData.get('userId') as string || 'temp-user-id'; // This should come from authentication
+    
     // Validate required fields
-    if (!userId || !patientName || !patientAge || !patientGender || !hospitalName || !hospitalAddress || !hospitalState || !department || !admissionDate) {
+    if (!mainCategory || !caseTitle || !name || !email || !phoneNumber || !caseDescription) {
       console.error('❌ Missing required fields:', {
-        userId: !!userId,
-        patientName: !!patientName,
-        patientAge: !!patientAge,
-        patientGender: !!patientGender,
-        hospitalName: !!hospitalName,
-        hospitalAddress: !!hospitalAddress,
-        hospitalState: !!hospitalState,
-        department: !!department,
-        admissionDate: !!admissionDate
+        mainCategory: !!mainCategory,
+        caseTitle: !!caseTitle,
+        name: !!name,
+        email: !!email,
+        phoneNumber: !!phoneNumber,
+        caseDescription: !!caseDescription
       });
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
@@ -59,98 +41,88 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate relationshipToPatient specifically
-    if (!relationshipToPatient) {
-      console.error('❌ Missing relationshipToPatient');
-      return NextResponse.json(
-        { success: false, error: 'Relationship to patient is required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate voice recording is required
-    if (!voiceRecordingUrl) {
-      console.error('❌ Missing voice recording');
-      return NextResponse.json(
-        { success: false, error: 'Voice recording is required' },
-        { status: 400 }
-      );
+    // Handle voice recording upload
+    let voiceRecordingUrl = null;
+    let voiceRecordingDuration = null;
+    
+    const voiceRecording = formData.get('voiceRecording') as File;
+    if (voiceRecording) {
+      try {
+        const voiceResult = await FileUploadService.uploadFile(voiceRecording, 'voice-recordings');
+        voiceRecordingUrl = voiceResult.fileUrl;
+        voiceRecordingDuration = 0; // We could calculate this from the file
+        console.log('✅ Voice recording uploaded:', voiceRecordingUrl);
+      } catch (error) {
+        console.error('❌ Error uploading voice recording:', error);
+        // Continue without voice recording as it's optional
+      }
     }
 
     // Create the case using Firestore service
     const newCase = await FirestoreService.createCase({
       userId,
       status: CaseStatus.PENDING,
-      patientName,
-      patientAge: parseInt(patientAge),
-      patientGender: patientGender as Gender,
-      relationshipToPatient,
-      hospitalName,
-      hospitalAddress,
-      hospitalState,
-      hospitalRegistrationNo: hospitalRegistrationNo || null,
-      department,
-      admissionDate: new Date(admissionDate),
-      isDischarged: Boolean(isDischarged),
-      dischargeDate: dischargeDate ? new Date(dischargeDate) : null,
-      detailedDescription,
+      mainCategory,
+      caseTitle,
+      name,
+      email,
+      phoneNumber,
+      caseDescription,
       gpsLatitude: gpsLatitude ? parseFloat(gpsLatitude) : null,
       gpsLongitude: gpsLongitude ? parseFloat(gpsLongitude) : null,
       capturedAddress: capturedAddress || null,
-      voiceRecordingUrl: formData.voiceRecordingUrl || null,
-      voiceRecordingDuration: formData.voiceRecordingDuration || null
+      voiceRecordingUrl,
+      voiceRecordingDuration
     });
 
-    // Create issue categories using Firestore service
-    if (issueCategories && issueCategories.length > 0) {
-      const categoryData = issueCategories.map((category: string) => ({
-        caseId: newCase.id,
-        category
-      }));
-      
-      await FirestoreService.createIssueCategories(categoryData);
-    }
+    console.log('✅ Case created successfully:', newCase.id);
 
-    // Create attachment records if files were uploaded
-    if (attachments && attachments.length > 0) {
-      console.log('📤 Creating attachment records:', attachments.length);
+    // Handle file attachments
+    const attachments = [];
+    let attachmentIndex = 0;
+    
+    while (true) {
+      const attachment = formData.get(`attachment_${attachmentIndex}`) as File;
+      if (!attachment) break;
       
-      for (const attachment of attachments) {
-        console.log('📤 Processing attachment:', attachment);
+      try {
+        const attachmentResult = await FileUploadService.uploadFile(attachment, 'case-attachments');
         
-        // Validate attachment data before creating record
-        if (!attachment || !attachment.fileName || !attachment.fileUrl) {
-          console.error('❌ Invalid attachment data:', attachment);
-          continue; // Skip this attachment
-        }
+        const attachmentRecord = await AttachmentService.createAttachment({
+          caseId: newCase.id,
+          fileName: attachment.name,
+          fileUrl: attachmentResult.fileUrl,
+          fileType: attachment.type,
+          fileSize: attachment.size,
+          storagePath: attachmentResult.storagePath || null
+        });
         
-        try {
-          const attachmentRecord = await AttachmentService.createAttachment({
-            caseId: newCase.id,
-            fileName: attachment.fileName,
-            fileUrl: attachment.fileUrl,
-            fileType: attachment.fileType,
-            fileSize: attachment.fileSize,
-            storagePath: attachment.storagePath || null
-          });
-          console.log('✅ Attachment record created successfully:', {
-            fileName: attachment.fileName,
-            id: attachmentRecord.id,
-            storagePath: attachment.storagePath
-          });
-        } catch (error) {
-          console.error('❌ Error creating attachment record:', error);
-          // Continue with other attachments instead of failing the whole case
-        }
+        attachments.push({
+          fileName: attachment.name,
+          fileUrl: attachmentResult.fileUrl,
+          fileType: attachment.type,
+          fileSize: attachment.size
+        });
+        
+        console.log('✅ Attachment uploaded:', attachment.name);
+      } catch (error) {
+        console.error('❌ Error uploading attachment:', error);
+        // Continue with other attachments
       }
+      
+      attachmentIndex++;
     }
 
     // Update user's total cases filed
-    const user = await FirestoreService.getUser(userId) as User | null;
-    if (user) {
-      await FirestoreService.updateUser(userId, {
-        totalCasesFiled: (user.totalCasesFiled || 0) + 1
-      });
+    try {
+      const user = await FirestoreService.getUser(userId) as User | null;
+      if (user) {
+        await FirestoreService.updateUser(userId, {
+          totalCasesFiled: (user.totalCasesFiled || 0) + 1
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error updating user case count:', error);
     }
 
     return NextResponse.json({
@@ -158,7 +130,7 @@ export async function POST(request: NextRequest) {
       data: {
         caseId: newCase.id,
         message: 'Case submitted successfully',
-        attachments: attachments || [] // Include attachments in response
+        attachments
       }
     });
 
@@ -176,6 +148,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
     const status = searchParams.get('status');
+    const mainCategory = searchParams.get('mainCategory');
     const isPublic = searchParams.get('public') === 'true';
 
     let cases;
@@ -184,6 +157,11 @@ export async function GET(request: NextRequest) {
       cases = await FirestoreService.getUserCases(userId);
     } else {
       cases = await FirestoreService.getAllCases(status || undefined);
+    }
+
+    // Filter by category if specified
+    if (mainCategory && mainCategory !== 'All Categories') {
+      cases = cases.filter((case_: any) => case_.mainCategory === mainCategory);
     }
 
     // Filter for public cases if requested

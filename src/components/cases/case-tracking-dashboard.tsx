@@ -81,8 +81,8 @@ export function CaseTrackingDashboard({ userId, refreshTrigger, onViewCaseDetail
 
   const filteredCases = cases.filter(case_ => {
     const matchesSearch = searchTerm === '' || 
-      case_.hospitalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      case_.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      case_.caseTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      case_.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       case_.id.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === 'ALL' || case_.status === statusFilter;
@@ -215,7 +215,7 @@ export function CaseTrackingDashboard({ userId, refreshTrigger, onViewCaseDetail
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Search by hospital name, patient name, or case ID..."
+                  placeholder="Search by case title, name, or case ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -281,7 +281,7 @@ export function CaseTrackingDashboard({ userId, refreshTrigger, onViewCaseDetail
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-lg font-semibold text-gray-900">
-                          {case_.hospitalName}
+                          {case_.caseTitle}
                         </h3>
                         <Badge className={statusColors[case_.status]}>
                           <StatusIcon className="h-3 w-3 mr-1" />
@@ -303,8 +303,8 @@ export function CaseTrackingDashboard({ userId, refreshTrigger, onViewCaseDetail
                         </div>
                         
                         <div className="flex items-center">
-                          <MapPin className="h-4 w-4 mr-2" />
-                          <span>{case_.hospitalState}</span>
+                          <span className="font-medium">Category:</span>
+                          <span className="ml-1">{case_.mainCategory}</span>
                         </div>
                         
                         <div className="flex items-center">
@@ -312,21 +312,6 @@ export function CaseTrackingDashboard({ userId, refreshTrigger, onViewCaseDetail
                           <span>{case_.attachments?.length || 0} attachments</span>
                         </div>
                       </div>
-
-                      {case_.issueCategories && case_.issueCategories.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {case_.issueCategories.slice(0, 3).map((category, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {category.category}
-                            </Badge>
-                          ))}
-                          {case_.issueCategories.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{case_.issueCategories.length - 3} more
-                            </Badge>
-                          )}
-                        </div>
-                      )}
                     </div>
 
                     <div className="flex items-center space-x-2 ml-4">

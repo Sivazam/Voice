@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Break Your Silence - Healthcare Transparency Platform",
+  title: "Break Your Silence multi-category justice system",
   description: "Report hospital malpractices, overcharging, and healthcare issues. Track cases and access transparent healthcare information.",
   keywords: ["healthcare", "hospital", "malpractice", "patient rights", "transparency", "complaints", "medical"],
   authors: [{ name: "Break Your Silence Team" }],
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     telephone: false,
   },
   openGraph: {
-    title: "Break Your Silence - Healthcare Transparency Platform",
+    title: "Break Your Silence multi-category justice system",
     description: "Report hospital malpractices and track healthcare complaints",
     url: "/",
     siteName: "Break Your Silence",
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Break Your Silence - Healthcare Transparency Platform",
+    title: "Break Your Silence multi-category justice system",
     description: "Report hospital malpractices and track healthcare complaints",
   },
 };

@@ -107,16 +107,18 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
   };
 
   const calculateDuration = () => {
-    if (!case_.admissionDate) return 0;
+    // Since we don't have admission/discharge dates in the new structure,
+    // we'll return 0 or calculate from submission date
+    if (!case_.submittedAt) return 0;
     try {
-      const admissionDate = new Date(case_.admissionDate);
-      const endDate = case_.dischargeDate ? new Date(case_.dischargeDate) : new Date();
+      const submissionDate = new Date(case_.submittedAt);
+      const endDate = new Date();
       
-      if (isNaN(admissionDate.getTime()) || isNaN(endDate.getTime())) {
+      if (isNaN(submissionDate.getTime()) || isNaN(endDate.getTime())) {
         return 0;
       }
       
-      return Math.ceil((endDate.getTime() - admissionDate.getTime()) / (1000 * 60 * 60 * 24));
+      return Math.ceil((endDate.getTime() - submissionDate.getTime()) / (1000 * 60 * 60 * 24));
     } catch (error) {
       console.error('Error calculating duration:', error);
       return 0;
@@ -299,9 +301,9 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
         <DialogHeader className="flex flex-col sm:flex-row items-start justify-between space-y-2 sm:space-y-0 pb-3 sm:pb-4 border-b px-4 sm:px-0 -mx-4 sm:mx-0">
           <div className="flex flex-col sm:flex-row items-start space-y-1 sm:space-y-0 sm:items-center gap-2 sm:gap-3">
             <div className="flex items-center space-x-2">
-              <Building className="h-5 w-5 text-blue-600" />
+              <FileText className="h-5 w-5 text-blue-600" />
               <DialogTitle className="text-base sm:text-lg font-semibold truncate max-w-[150px] sm:max-w-[200px]">
-                {case_.hospitalName}
+                {case_.caseTitle}
               </DialogTitle>
             </div>
             <Badge className={`${statusInfo.color} shrink-0 px-2 sm:px-3 py-1 text-xs`}>
@@ -316,101 +318,67 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
 
         <ScrollArea className="flex-1 h-[calc(100vh-120px)] sm:h-[calc(85vh-80px)] px-3 sm:px-6 pb-4 sm:pb-6">
           <div className="space-y-3 sm:space-y-4">
-            {/* Patient Information Card */}
+            {/* Personal Information Card */}
             <Card>
               <CardHeader className="pb-2 sm:pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-semibold">
                   <User className="h-4 w-4" />
-                  Patient Information
+                  Personal Information
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0 px-3 sm:px-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Full Name</p>
-                    <p className="text-sm font-medium">{case_.patientName}</p>
+                    <p className="text-sm font-medium">{case_.name}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Age</p>
-                    <p className="text-sm font-medium">{case_.patientAge} years</p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Email</p>
+                    <p className="text-sm font-medium">{case_.email}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Gender</p>
-                    <p className="text-sm font-medium">{case_.patientGender}</p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Phone</p>
+                    <p className="text-sm font-medium">{case_.phoneNumber}</p>
                   </div>
-                  <div className="sm:col-span-2">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Relationship</p>
-                    <p className="text-sm font-medium">{case_.relationshipToPatient}</p>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Category</p>
+                    <p className="text-sm font-medium">{case_.mainCategory}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Hospital Information Card */}
+            {/* Case Description Card */}
             <Card>
               <CardHeader className="pb-2 sm:pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-semibold">
-                  <Building className="h-4 w-4" />
-                  Hospital Information
+                  <FileText className="h-4 w-4" />
+                  Case Description
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0 px-3 sm:px-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  <div className="sm:col-span-2">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Hospital Name</p>
-                    <p className="text-sm font-medium">{case_.hospitalName}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Department</p>
-                    <p className="text-sm font-medium">{case_.department}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">State</p>
-                    <p className="text-sm font-medium">{case_.hospitalState}</p>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Address</p>
-                    <p className="text-sm font-medium">{case_.hospitalAddress}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Reg. Number</p>
-                    <p className="text-sm font-medium">{case_.hospitalRegistrationNo || 'Not provided'}</p>
-                  </div>
-                </div>
+                <p className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg whitespace-pre-wrap">
+                  {case_.caseDescription}
+                </p>
               </CardContent>
             </Card>
 
-            {/* Treatment Timeline Card */}
-            <Card>
-              <CardHeader className="pb-2 sm:pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-semibold">
-                  <Calendar className="h-4 w-4" />
-                  Treatment Timeline
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 px-3 sm:px-6">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Admission</p>
-                    <p className="text-sm font-medium">{formatDate(case_.admissionDate)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Status</p>
-                    <p className="text-sm font-medium">{case_.isDischarged ? 'Discharged' : 'Admitted'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Duration</p>
-                    <p className="text-sm font-medium">{calculateDuration()} days</p>
-                  </div>
-                  {case_.dischargeDate && (
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Discharge</p>
-                      <p className="text-sm font-medium">{formatDate(case_.dischargeDate)}</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Location Information Card */}
+            {case_.capturedAddress && (
+              <Card>
+                <CardHeader className="pb-2 sm:pb-3">
+                  <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-semibold">
+                    <MapPin className="h-4 w-4" />
+                    Location Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0 px-3 sm:px-6">
+                  <p className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg">
+                    {case_.capturedAddress}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Issue Categories Card */}
             {case_.issueCategories && case_.issueCategories.length > 0 && (

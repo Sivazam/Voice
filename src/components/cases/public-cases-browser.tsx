@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { Case, CaseStatus, ApiResponse } from '@/types';
 import { useAuthStore } from '@/store/auth-store';
+import { MAIN_CATEGORIES } from '@/lib/constants';
 
 interface PublicCasesBrowserProps {
   isOpen: boolean;
@@ -41,13 +42,9 @@ const INDIAN_STATES = [
   'Chennai', 'Bengaluru', 'Hyderabad', 'Pune', 'Ahmedabad', 'Jaipur', 'Lucknow'
 ];
 
-const ISSUE_CATEGORIES = [
-  'All Categories', 'No Prescription Provided',
-  'GST Discrepancy',
-  'Overcharging',
-  'Unused Medications Not Returned',
-  'Forced Medication Purchase',
-  'Lack of Transparency'
+const MAIN_CATEGORIES_WITH_ALL = [
+  { id: 'all', name: 'All Categories', description: '' },
+  ...MAIN_CATEGORIES
 ];
 
 const statusColors = {
@@ -83,13 +80,12 @@ export const PublicCasesBrowser = React.memo(function PublicCasesBrowser({ isOpe
     try {
       const params = new URLSearchParams({
         search: searchTerm,
-        state: stateFilter,
-        category: categoryFilter,
+        mainCategory: categoryFilter,
         sort: sortBy,
         public: 'true'
       });
 
-      const response = await fetch(`/api/cases/public?${params}`);
+      const response = await fetch(`/api/cases?${params}`);
       const data: ApiResponse<Case[]> = await response.json();
 
       if (data.success && data.data) {
@@ -102,7 +98,7 @@ export const PublicCasesBrowser = React.memo(function PublicCasesBrowser({ isOpe
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, stateFilter, categoryFilter, sortBy]);
+  }, [searchTerm, categoryFilter, sortBy]);
 
   useEffect(() => {
     if (isOpen) {
@@ -134,7 +130,7 @@ export const PublicCasesBrowser = React.memo(function PublicCasesBrowser({ isOpe
       return;
     }
 
-    if (!confirm(`Are you sure you want to delete this case from ${case_.hospitalName}? This action cannot be undone.`)) {
+    if (!confirm(`Are you sure you want to delete this case? This action cannot be undone.`)) {
       return;
     }
 
@@ -199,7 +195,7 @@ export const PublicCasesBrowser = React.memo(function PublicCasesBrowser({ isOpe
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Public Cases</h2>
-          <p className="text-gray-600">Browse approved healthcare complaints</p>
+          <p className="text-gray-600">Browse approved cases across all categories</p>
         </div>
         <Button
           variant="outline"
@@ -256,8 +252,8 @@ export const PublicCasesBrowser = React.memo(function PublicCasesBrowser({ isOpe
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {ISSUE_CATEGORIES.map((category) => (
-                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                  {MAIN_CATEGORIES_WITH_ALL.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -293,7 +289,7 @@ export const PublicCasesBrowser = React.memo(function PublicCasesBrowser({ isOpe
             <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No cases found</h3>
             <p className="text-gray-600">
-              {searchTerm || stateFilter !== 'All States' || categoryFilter !== 'All Categories' 
+              {searchTerm || categoryFilter !== 'All Categories' 
                 ? 'Try adjusting your filters or search terms'
                 : 'No approved cases available yet'
               }
@@ -311,7 +307,7 @@ export const PublicCasesBrowser = React.memo(function PublicCasesBrowser({ isOpe
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                        {case_.hospitalName}
+                        {case_.caseTitle}
                       </h3>
                       <Badge className={statusColors[case_.status]}>
                         <StatusIcon className="h-3 w-3 mr-1" />
@@ -344,28 +340,12 @@ export const PublicCasesBrowser = React.memo(function PublicCasesBrowser({ isOpe
                         <span>Filed: {formatDate(case_.submittedAt)}</span>
                       </div>
                       <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-2" />
-                        <span>{case_.hospitalState}</span>
+                        <span className="font-medium">Category:</span> {case_.mainCategory}
                       </div>
                     </div>
 
-                    {case_.issueCategories && case_.issueCategories.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {case_.issueCategories.slice(0, 2).map((category, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {category.category}
-                          </Badge>
-                        ))}
-                        {case_.issueCategories.length > 2 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{case_.issueCategories.length - 2} more
-                          </Badge>
-                        )}
-                      </div>
-                    )}
-
                     <p className="text-sm text-gray-700 line-clamp-3 max-h-16 overflow-hidden">
-                      {case_.detailedDescription}
+                      {case_.caseDescription}
                     </p>
                   </div>
                 </CardContent>
@@ -398,74 +378,74 @@ export const PublicCasesBrowser = React.memo(function PublicCasesBrowser({ isOpe
             
             <div className="flex-1 overflow-y-auto p-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Patient Information */}
+                {/* Personal Information */}
                 <div className="space-y-4">
-                  <h4 className="text-lg font-semibold text-gray-900">Patient Information</h4>
+                  <h4 className="text-lg font-semibold text-gray-900">Personal Information</h4>
                   <div className="space-y-2 text-sm">
-                    <div><span className="font-medium">Name:</span> {selectedCase.patientName}</div>
-                    <div><span className="font-medium">Age:</span> {selectedCase.patientAge}</div>
-                    <div><span className="font-medium">Gender:</span> {selectedCase.patientGender}</div>
-                    <div><span className="font-medium">Relationship:</span> {selectedCase.relationshipToPatient}</div>
+                    <div><span className="font-medium">Name:</span> {selectedCase.name}</div>
+                    <div><span className="font-medium">Email:</span> {selectedCase.email}</div>
+                    <div><span className="font-medium">Phone:</span> {selectedCase.phoneNumber}</div>
                   </div>
                 </div>
 
-                {/* Hospital Information */}
+                {/* Case Information */}
                 <div className="space-y-4">
-                  <h4 className="text-lg font-semibold text-gray-900">Hospital Information</h4>
+                  <h4 className="text-lg font-semibold text-gray-900">Case Information</h4>
                   <div className="space-y-2 text-sm">
-                    <div><span className="font-medium">Name:</span> {selectedCase.hospitalName}</div>
-                    <div><span className="font-medium">Address:</span> {selectedCase.hospitalAddress}</div>
-                    <div><span className="font-medium">State:</span> {selectedCase.hospitalState}</div>
-                    <div><span className="font-medium">Department:</span> {selectedCase.department}</div>
+                    <div><span className="font-medium">Title:</span> {selectedCase.caseTitle}</div>
+                    <div><span className="font-medium">Category:</span> {selectedCase.mainCategory}</div>
+                    <div><span className="font-medium">Status:</span> 
+                      <Badge className={statusColors[selectedCase.status]}>
+                        {getStatusText(selectedCase.status)}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
 
-                {/* Timeline */}
-                <div className="space-y-4">
-                  <h4 className="text-lg font-semibold text-gray-900">Treatment Timeline</h4>
-                  <div className="space-y-2 text-sm">
-                    <div><span className="font-medium">Admission:</span> {formatDate(selectedCase.admissionDate)}</div>
-                    {selectedCase.isDischarged && selectedCase.dischargeDate && (
-                      <div><span className="font-medium">Discharge:</span> {formatDate(selectedCase.dischargeDate)}</div>
-                    )}
+                {/* Case Description */}
+                <div className="space-y-4 lg:col-span-2">
+                  <h4 className="text-lg font-semibold text-gray-900">Case Description</h4>
+                  <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg">
+                    {selectedCase.caseDescription}
                   </div>
                 </div>
 
-                {/* Case Details */}
-                <div className="space-y-4">
-                  <h4 className="text-lg font-semibold text-gray-900">Complaint Details</h4>
-                  <div className="space-y-2 text-sm">
-                    {selectedCase.issueCategories && selectedCase.issueCategories.length > 0 && (
-                      <div className="mb-3">
-                        <span className="font-medium">Issues:</span>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {selectedCase.issueCategories.map((category, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {category.category}
-                            </Badge>
-                          ))}
-                        </div>
+                {/* Location Information */}
+                {selectedCase.capturedAddress && (
+                  <div className="space-y-4 lg:col-span-2">
+                    <h4 className="text-lg font-semibold text-gray-900">Location Information</h4>
+                    <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg">
+                      <div className="flex items-center">
+                        <MapPin className="h-4 w-4 mr-2" />
+                        {selectedCase.capturedAddress}
                       </div>
-                    )}
-                    <div><span className="font-medium">Description:</span></div>
-                    <p className="text-gray-700 bg-gray-50 p-3 rounded max-h-48 overflow-y-auto whitespace-pre-wrap break-words">
-                      {selectedCase.detailedDescription}
-                    </p>
+                    </div>
                   </div>
-                </div>
-              </div>
+                )}
 
-              {/* Attachments */}
-              {selectedCase.attachments && selectedCase.attachments.length > 0 && (
-                <div className="mt-6">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Attachments</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {selectedCase.attachments.map((attachment, index) => (
-                      <div key={index} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <FileText className="h-4 w-4 text-blue-600 mr-2" />
-                            <span className="text-sm font-medium">{attachment.fileName}</span>
+                {/* Voice Recording */}
+                {selectedCase.voiceRecordingUrl && (
+                  <div className="space-y-4 lg:col-span-2">
+                    <h4 className="text-lg font-semibold text-gray-900">Voice Recording</h4>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <audio controls className="w-full">
+                        <source src={selectedCase.voiceRecordingUrl} type="audio/webm" />
+                        Your browser does not support the audio element.
+                      </audio>
+                    </div>
+                  </div>
+                )}
+
+                {/* Attachments */}
+                {selectedCase.attachments && selectedCase.attachments.length > 0 && (
+                  <div className="space-y-4 lg:col-span-2">
+                    <h4 className="text-lg font-semibold text-gray-900">Attachments</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {selectedCase.attachments.map((attachment, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center space-x-3">
+                            <FileText className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm truncate">{attachment.fileName}</span>
                           </div>
                           <Button
                             variant="outline"
@@ -475,82 +455,10 @@ export const PublicCasesBrowser = React.memo(function PublicCasesBrowser({ isOpe
                             <Download className="h-4 w-4" />
                           </Button>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Voice Recording */}
-              {selectedCase.voiceRecordingUrl && (
-                <div className="mt-6">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Voice Recording</h4>
-                  <div className="border border-gray-200 rounded-lg p-4">
-                    <audio 
-                      controls 
-                      className="w-full"
-                      src={selectedCase.voiceRecordingUrl ? `/api/proxy/storage?url=${encodeURIComponent(selectedCase.voiceRecordingUrl)}` : ''}
-                      preload="metadata"
-                    >
-                      Your browser does not support the audio element.
-                    </audio>
-                    <div className="mt-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          if (selectedCase.voiceRecordingUrl) {
-                            window.open(`/api/proxy/storage?url=${encodeURIComponent(selectedCase.voiceRecordingUrl)}`, '_blank');
-                          }
-                        }}
-                        className="flex items-center gap-2"
-                        disabled={!selectedCase.voiceRecordingUrl}
-                      >
-                        <Download className="h-4 w-4" />
-                        Download Audio
-                      </Button>
+                      ))}
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-
-            <div className="bg-gray-50 border-t border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-600">
-                  <span className="font-medium">Status:</span>
-                  <Badge className={`ml-2 ${statusColors[selectedCase.status]}`}>
-                    {(() => {
-                      const StatusIcon = statusIcons[selectedCase.status];
-                      return <StatusIcon className="h-3 w-3 mr-1" />;
-                    })()}
-                    {getStatusText(selectedCase.status)}
-                  </Badge>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (navigator.share) {
-                        navigator.share({
-                          title: `Healthcare Case: ${selectedCase.hospitalName}`,
-                          text: selectedCase.detailedDescription,
-                          url: window.location.href
-                        });
-                      }
-                    }}
-                  >
-                    <Share2 className="h-4 w-4 mr-1" />
-                    Share
-                  </Button>
-                  <Button
-                    onClick={() => setSelectedCase(null)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    Close
-                  </Button>
-                </div>
+                )}
               </div>
             </div>
           </div>
