@@ -127,8 +127,8 @@ export default function AudioTestPage() {
                       }`}
                       onClick={() => setSelectedCase(case_)}
                     >
-                      <div className="font-medium text-sm mb-1">{case_.hospitalName}</div>
-                      <div className="text-xs text-gray-600">{case_.patientName}</div>
+                      <div className="font-medium text-sm mb-1">{case_.caseTitle}</div>
+                      <div className="text-xs text-gray-600">{case_.name}</div>
                       <div className="text-xs text-gray-500 mt-1">ID: {case_.id.slice(0, 12)}...</div>
                     </div>
                   ))}
@@ -141,7 +141,7 @@ export default function AudioTestPage() {
           {selectedCase && (
             <AudioTest 
               audioUrl={selectedCase.voiceRecordingUrl} 
-              title={`Audio Test - ${selectedCase.hospitalName}`}
+              title={`Audio Test - ${selectedCase.caseTitle}`}
             />
           )}
 
@@ -149,7 +149,7 @@ export default function AudioTestPage() {
           {selectedCase && (
             <AudioDurationFix 
               audioUrl={selectedCase.voiceRecordingUrl} 
-              title={`Duration Fix - ${selectedCase.hospitalName}`}
+              title={`Duration Fix - ${selectedCase.caseTitle}`}
             />
           )}
 

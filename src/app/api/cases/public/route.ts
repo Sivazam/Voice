@@ -18,23 +18,20 @@ export async function GET(request: NextRequest) {
 
     // Apply additional filters
     if (state && state !== 'All States') {
-      cases = cases.filter(case_ => case_.hospitalState === state);
+      cases = cases.filter(case_ => case_.capturedAddress && case_.capturedAddress.toLowerCase().includes(state.toLowerCase()));
     }
 
     if (search) {
       const searchLower = search.toLowerCase();
       cases = cases.filter(case_ => 
-        case_.hospitalName.toLowerCase().includes(searchLower) ||
-        case_.patientName.toLowerCase().includes(searchLower) ||
-        case_.detailedDescription.toLowerCase().includes(searchLower)
+        case_.caseTitle.toLowerCase().includes(searchLower) ||
+        case_.name.toLowerCase().includes(searchLower) ||
+        case_.caseDescription.toLowerCase().includes(searchLower)
       );
     }
 
     if (category && category !== 'All Categories') {
-      cases = cases.filter(case_ => 
-        case_.issueCategories && 
-        case_.issueCategories.some((cat: any) => cat.category === category)
-      );
+      cases = cases.filter(case_ => case_.mainCategory === category);
     }
 
     // Sort cases

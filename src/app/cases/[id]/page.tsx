@@ -365,24 +365,20 @@ export default function CaseReviewPage() {
                     </Badge>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">Patient Name</Label>
-                    <p className="text-sm text-gray-900 font-medium">{case_.patientName}</p>
+                    <Label className="text-sm font-medium">Name</Label>
+                    <p className="text-sm text-gray-900 font-medium">{case_.name}</p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">Age & Gender</Label>
-                    <p className="text-sm text-gray-900">{case_.patientAge}, {case_.patientGender}</p>
+                    <Label className="text-sm font-medium">Email</Label>
+                    <p className="text-sm text-gray-900">{case_.email}</p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">Hospital</Label>
-                    <p className="text-sm text-gray-900">{case_.hospitalName}</p>
+                    <Label className="text-sm font-medium">Phone</Label>
+                    <p className="text-sm text-gray-900">{case_.phoneNumber}</p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">Department</Label>
-                    <p className="text-sm text-gray-900">{case_.department}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Admission Date</Label>
-                    <p className="text-sm text-gray-900">{formatDate(case_.admissionDate)}</p>
+                    <Label className="text-sm font-medium">Category</Label>
+                    <p className="text-sm text-gray-900">{case_.mainCategory}</p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Submitted Date</Label>
@@ -395,25 +391,12 @@ export default function CaseReviewPage() {
                 </div>
 
                 {/* Issue Categories */}
-                {case_.issueCategories && case_.issueCategories.length > 0 && (
-                  <div>
-                    <Label className="text-sm font-medium">Issue Categories</Label>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {case_.issueCategories.map((category, index) => (
-                        <Badge key={index} variant="outline">
-                          {category.category}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 {/* Description */}
                 <div>
-                  <Label className="text-sm font-medium">Detailed Description</Label>
+                  <Label className="text-sm font-medium">Case Description</Label>
                   <div className="mt-1 p-3 bg-gray-50 rounded-lg max-h-48 overflow-y-auto">
                     <p className="text-sm text-gray-900 whitespace-pre-wrap break-words">
-                      {case_.detailedDescription}
+                      {case_.caseDescription}
                     </p>
                   </div>
                 </div>

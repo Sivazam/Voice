@@ -381,38 +381,34 @@ export function CaseDetailsModal({ case_, isOpen, onClose }: CaseDetailsModalPro
             )}
 
             {/* Issue Categories Card */}
-            {case_.issueCategories && case_.issueCategories.length > 0 && (
+            {case_.mainCategory && case_.mainCategory.length > 0 && (
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-base font-semibold">
                     <AlertCircle className="h-4 w-4" />
-                    Issue Categories
+                    Category
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="flex flex-wrap gap-2">
-                  {case_.issueCategories.map((category, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {category.category}
-                    </Badge>
-                  ))}
-                </div>
+                <Badge variant="secondary" className="text-sm">
+                  {case_.mainCategory}
+                </Badge>
               </CardContent>
             </Card>
             )}
 
-            {/* Detailed Description Card */}
+            {/* Case Description Card */}
             <Card>
               <CardHeader className="pb-2 sm:pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-semibold">
                   <FileText className="h-4 w-4" />
-                  Detailed Description
+                  Case Description
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0 px-3 sm:px-6">
                 <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                    {case_.detailedDescription}
+                    {case_.caseDescription}
                   </p>
                 </div>
               </CardContent>

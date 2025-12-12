@@ -3,7 +3,7 @@ import { FirestoreService } from '@/lib/firestore';
 import { CaseStatus, User } from '@/types';
 
 // Import FileUploadService for file upload functionality
-import { FileUploadService } from '@/lib/attachment-service';
+import { FileUploadService, AttachmentService } from '@/lib/attachment-service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,13 +42,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Handle voice recording upload
-    let voiceRecordingUrl = null;
-    let voiceRecordingDuration = null;
+    let voiceRecordingUrl: string | undefined;
+    let voiceRecordingDuration: number | undefined;
     
     const voiceRecording = formData.get('voiceRecording') as File;
     if (voiceRecording) {
       try {
-        const voiceResult = await FileUploadService.uploadFile(voiceRecording, 'voice-recordings');
+        const voiceResult = await FileUploadService.uploadFile(voiceRecording, 'temp-case-id', 'voice-recordings');
         voiceRecordingUrl = voiceResult.fileUrl;
         voiceRecordingDuration = 0; // We could calculate this from the file
         console.log('✅ Voice recording uploaded:', voiceRecordingUrl);
@@ -68,9 +68,9 @@ export async function POST(request: NextRequest) {
       email,
       phoneNumber,
       caseDescription,
-      gpsLatitude: gpsLatitude ? parseFloat(gpsLatitude) : null,
-      gpsLongitude: gpsLongitude ? parseFloat(gpsLongitude) : null,
-      capturedAddress: capturedAddress || null,
+      gpsLatitude: gpsLatitude ? parseFloat(gpsLatitude) : undefined,
+      gpsLongitude: gpsLongitude ? parseFloat(gpsLongitude) : undefined,
+      capturedAddress: capturedAddress || undefined,
       voiceRecordingUrl,
       voiceRecordingDuration
     });
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ Case created successfully:', newCase.id);
 
     // Handle file attachments
-    const attachments = [];
+    const attachments: Array<{fileName: string, fileUrl: string, fileType: string, fileSize: number}> = [];
     let attachmentIndex = 0;
     
     while (true) {
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       if (!attachment) break;
       
       try {
-        const attachmentResult = await FileUploadService.uploadFile(attachment, 'case-attachments');
+        const attachmentResult = await FileUploadService.uploadFile(attachment, newCase.id, 'case-attachments');
         
         const attachmentRecord = await AttachmentService.createAttachment({
           caseId: newCase.id,
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
           fileUrl: attachmentResult.fileUrl,
           fileType: attachment.type,
           fileSize: attachment.size,
-          storagePath: attachmentResult.storagePath || null
+          storagePath: attachmentResult.storagePath || undefined
         });
         
         attachments.push({
