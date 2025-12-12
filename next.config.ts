@@ -5,9 +5,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false, // Enable TypeScript checking
   },
   reactStrictMode: true, // Enable React strict mode for better development experience
-  eslint: {
-    ignoreDuringBuilds: false, // Enable ESLint during builds
-  },
+  // ESLint configuration is now handled separately in Next.js 16
 };
 
 export default nextConfig;

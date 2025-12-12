@@ -58,8 +58,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create the case using Firestore service
-    const newCase = await FirestoreService.createCase({
+    // Prepare case data with only defined values
+    const caseData: any = {
       userId,
       status: CaseStatus.PENDING,
       mainCategory,
@@ -67,13 +67,18 @@ export async function POST(request: NextRequest) {
       name,
       email,
       phoneNumber,
-      caseDescription,
-      gpsLatitude: gpsLatitude ? parseFloat(gpsLatitude) : undefined,
-      gpsLongitude: gpsLongitude ? parseFloat(gpsLongitude) : undefined,
-      capturedAddress: capturedAddress || undefined,
-      voiceRecordingUrl,
-      voiceRecordingDuration
-    });
+      caseDescription
+    };
+
+    // Add optional fields only if they have values
+    if (gpsLatitude) caseData.gpsLatitude = parseFloat(gpsLatitude);
+    if (gpsLongitude) caseData.gpsLongitude = parseFloat(gpsLongitude);
+    if (capturedAddress) caseData.capturedAddress = capturedAddress;
+    if (voiceRecordingUrl) caseData.voiceRecordingUrl = voiceRecordingUrl;
+    if (voiceRecordingDuration !== undefined) caseData.voiceRecordingDuration = voiceRecordingDuration;
+
+    // Create the case using Firestore service
+    const newCase = await FirestoreService.createCase(caseData);
 
     console.log('✅ Case created successfully:', newCase.id);
 
