@@ -147,7 +147,7 @@ export default function InitAdminPage() {
             Initialize Super Admin
           </CardTitle>
           <CardDescription>
-            Create the first Super Administrator for the multi-category justice system
+            Create the first Super Administrator for the Healthcare Transparency Platform
           </CardDescription>
         </CardHeader>
         

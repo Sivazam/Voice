@@ -369,7 +369,7 @@ export default React.memo(function Home() {
           <div className="text-center max-w-4xl mx-auto">
             <Badge className="mb-6 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 hover:from-blue-200 hover:to-blue-300 px-6 py-3 rounded-full text-sm font-medium">
               <Shield className="h-4 w-4 mr-2" />
-              multi-category justice system
+              Healthcare Transparency Platform
             </Badge>
             
             <h2 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
@@ -468,7 +468,7 @@ export default React.memo(function Home() {
         <section className="container mx-auto px-4 py-16">
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-2">My Cases</h2>
-            <p className="text-gray-600">Track and manage your complaints</p>
+            <p className="text-gray-600">Track and manage your healthcare complaints</p>
           </div>
           
           <div className="mb-6">
@@ -567,7 +567,7 @@ export default React.memo(function Home() {
                 About Break Your Silence
               </h2>
               <p className="text-xl text-gray-600">
-                Empowering users with transparency and accountability in healthcare
+                Empowering patients with transparency and accountability in healthcare
               </p>
             </div>
 
@@ -581,7 +581,7 @@ export default React.memo(function Home() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-600 leading-relaxed">
-                    To create a transparent  ecosystem where users can report issues, 
+                    To create a transparent healthcare ecosystem where patients can report issues, 
                     track progress, and access verified information to make informed decisions about their care.
                   </p>
                 </CardContent>
@@ -627,7 +627,7 @@ export default React.memo(function Home() {
             Ready to Make a Difference?
           </h2>
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Join thousands of user fighting for better society
+            Join thousands of patients fighting for better healthcare
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
