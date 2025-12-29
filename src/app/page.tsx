@@ -373,7 +373,7 @@ export default React.memo(function Home() {
           <div className="text-center max-w-4xl mx-auto">
             <Badge className="mb-6 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 hover:from-blue-200 hover:to-blue-300 px-6 py-3 rounded-full text-sm font-medium">
               <Shield className="h-4 w-4 mr-2" />
-              Healthcare Transparency Platform
+              Public Transparency Platform
             </Badge>
             
             <h2 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
