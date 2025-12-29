@@ -40,7 +40,14 @@ export const MAIN_CATEGORIES = [
     name: 'Political',
     description: 'Political issues, governance, policy complaints, etc.',
     icon: '🏛️'
+  },
+  {
+    id: 'help',
+    name: 'Help',
+    description: 'Urgent requests for help, emergency assistance, and immediate support.',
+    icon: '🚨'
   }
+
 ];
 
 export const INDIAN_STATES = [
