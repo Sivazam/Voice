@@ -155,8 +155,12 @@ export default React.memo(function Home() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2 group cursor-pointer" onClick={() => setActiveTab('home')}>
-                <Shield className="h-8 w-8 text-blue-600 transition-all duration-300 group-hover:scale-110 group-hover:text-blue-700" />
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent group-hover:from-blue-700 group-hover:to-blue-900 transition-all duration-300">
+                <img
+                  src="/favicon.png"
+                  alt="Icon"
+                  className="h-20 w-20 transition-all duration-300 group-hover:scale-110"
+                />
+                <h1 style={{color:"#283c6e"}} className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent group-hover:from-blue-700 group-hover:to-blue-900 transition-all duration-300">
                   Break Your Silence
                 </h1>
               </div>

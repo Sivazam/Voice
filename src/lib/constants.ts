@@ -6,6 +6,12 @@ export const MAIN_CATEGORIES = [
     icon: '🎓'
   },
   {
+    id: 'Health',
+    name: 'Health',
+    description: 'Issues related to hospitals, clinics, medical services, treatment, and healthcare facilities.',
+    icon: '🏥'
+  },
+  {
     id: 'banking',
     name: 'Banking',
     description: 'Banking related issues, loan problems, service complaints, etc.',
