@@ -427,17 +427,30 @@ export default function DigitalCardProfilePage() {
             const fetchProfile = async () => {
                 // First check local store (for preview)
                 let found = getProfileById(id);
-                if (!found && currentProfile.id === id) found = currentProfile as DigitalCardProfile;
 
-                if (found) {
+                // Fallback to current profile if ID matches (for drafts/previews)
+                if (!found && currentProfile.id === id) {
+                    found = currentProfile as DigitalCardProfile;
+                }
+
+                // Validate found profile - if it's empty or missing name, treat as not found
+                const isValidLocal = found && found.name && found.name.trim().length > 0;
+
+                if (isValidLocal) {
+                    console.log('Found valid local profile:', found);
                     setProfile(found);
                     setIsLoading(false);
                 } else {
-                    // If not found locally, fetch from Firestore (for public view)
+                    // If not found locally or invalid, fetch from Firestore (for public view)
                     try {
+                        console.log('Fetching profile from Firestore for ID:', id);
                         const remoteProfile = await DigitalCardService.getProfileById(id);
+                        console.log('Remote profile result:', remoteProfile);
+
                         if (remoteProfile) {
                             setProfile(remoteProfile);
+                        } else {
+                            console.warn('No profile found in Firestore for ID:', id);
                         }
                     } catch (error) {
                         console.error('Error fetching profile:', error);
@@ -551,8 +564,8 @@ export default function DigitalCardProfilePage() {
                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="flex justify-center mb-5">
                     <div style={{ perspective: 1200 }}>
                         <motion.div className="relative w-[320px] h-[184px]" style={{ transformStyle: 'preserve-3d' }} animate={{ rotateY: isFlipped ? 180 : 0 }} transition={{ duration: 0.7, type: 'spring', stiffness: 70 }}>
-                            <div className="absolute inset-0 [backface-visibility:hidden]"><CardFront profile={profile} /></div>
-                            <div className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)]"><CardBack profileUrl={url} /></div>
+                            <div className="absolute inset-0 bg-white rounded-xl overflow-hidden" style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', zIndex: isFlipped ? 0 : 1 }}><CardFront profile={profile} /></div>
+                            <div className="absolute inset-0 bg-white rounded-xl overflow-hidden" style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)', zIndex: isFlipped ? 1 : 0 }}><CardBack profileUrl={url} /></div>
                         </motion.div>
                     </div>
                 </motion.div>

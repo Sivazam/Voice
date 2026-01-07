@@ -26,7 +26,7 @@ function AuthModal({
     onSuccess
 }: {
     onSuccess: () => void;
-}) {
+}): JSX.Element {
     const { auth: storeAuth, setPhoneNumber, loginSuccess } = useDigitalCardStore();
     const [phone, setPhone] = useState('');
     const [otp, setOtp] = useState('');
@@ -37,15 +37,49 @@ function AuthModal({
 
     useEffect(() => {
         const auth = getAuth(firebaseApp);
+
+        // Clear existing verifier if any
+        if (window.recaptchaVerifier) {
+            try {
+                window.recaptchaVerifier.clear();
+            } catch (e) {
+                console.error('Error clearing recaptcha:', e);
+            }
+            window.recaptchaVerifier = undefined;
+        }
+
         // Initialize RecaptchaVerifier
-        if (!window.recaptchaVerifier) {
+        try {
             window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
                 'size': 'invisible',
                 'callback': (response: any) => {
                     // reCAPTCHA solved, allow signInWithPhoneNumber.
+                    console.log('reCAPTCHA solved');
+                },
+                'expired-callback': () => {
+                    // Response expired. Ask user to solve reCAPTCHA again.
+                    console.log('reCAPTCHA expired');
+                    if (window.recaptchaVerifier) {
+                        window.recaptchaVerifier.clear();
+                        window.recaptchaVerifier = undefined;
+                    }
                 }
             });
+        } catch (error) {
+            console.error('Error initializing RecaptchaVerifier:', error);
         }
+
+        return () => {
+            // Cleanup
+            if (window.recaptchaVerifier) {
+                try {
+                    window.recaptchaVerifier.clear();
+                } catch (e) {
+                    console.error('Error clearing recaptcha on unmount:', e);
+                }
+                window.recaptchaVerifier = undefined;
+            }
+        };
     }, []);
 
     const handleSendOtp = async () => {
@@ -59,10 +93,16 @@ function AuthModal({
 
         try {
             const auth = getAuth(firebaseApp);
-            // Format phone number to E.164 format (assuming India for now, but should be dynamic)
             const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
 
+            console.log('Attempting to sign in with phone:', formattedPhone);
+            console.log('Current Hostname:', window.location.hostname);
+
             const appVerifier = window.recaptchaVerifier;
+            if (!appVerifier) {
+                throw new Error('RecaptchaVerifier not initialized');
+            }
+
             const confirmation = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
 
             setConfirmationResult(confirmation);
@@ -70,8 +110,11 @@ function AuthModal({
             setStep('otp');
         } catch (err: any) {
             console.error("Error sending OTP:", err);
+            console.error("Error Code:", err.code);
+            console.error("Error Message:", err.message);
+            console.error("Full Error Object:", JSON.stringify(err, null, 2));
+
             setError(err.message || 'Failed to send OTP. Please try again.');
-            // Reset recaptcha
             if (window.recaptchaVerifier) {
                 window.recaptchaVerifier.clear();
                 window.recaptchaVerifier = undefined;
@@ -166,7 +209,6 @@ function AuthModal({
                             <p className="text-center text-sm text-gray-500">
                                 We will send you a One Time Password to your mobile number
                             </p>
-                            <div id="recaptcha-container"></div>
                         </motion.div>
                     ) : (
                         <motion.div
@@ -216,6 +258,9 @@ function AuthModal({
                         </motion.div>
                     )}
                 </AnimatePresence>
+
+                {/* Recaptcha Container - Moved outside to persist */}
+                <div id="recaptcha-container"></div>
 
                 <div className="mt-8 pt-6 border-t border-gray-100 text-center">
                     <Link

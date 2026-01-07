@@ -95,11 +95,15 @@ export class DigitalCardService {
      */
     static async getProfileById(id: string): Promise<DigitalCardProfile | null> {
         try {
+            console.log('DigitalCardService: Querying Firestore for ID:', id);
             const q = query(collection(firestore, 'digital_cards'), where('id', '==', id));
             const querySnapshot = await getDocs(q);
 
+            console.log('DigitalCardService: Query snapshot empty?', querySnapshot.empty);
             if (!querySnapshot.empty) {
-                return querySnapshot.docs[0].data() as DigitalCardProfile;
+                const data = querySnapshot.docs[0].data() as DigitalCardProfile;
+                console.log('DigitalCardService: Found profile:', data.id);
+                return data;
             }
             return null;
         } catch (error) {
