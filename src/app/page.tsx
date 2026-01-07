@@ -97,7 +97,7 @@ export default React.memo(function Home() {
     { label: 'Active Users', value: '5,678', icon: Users, color: 'text-purple-600', bgColor: 'bg-purple-50' }
   ];
 
-  
+
 
   const handleLoginSuccess = React.useCallback((userData: UserType) => {
     login(userData);
@@ -161,28 +161,26 @@ export default React.memo(function Home() {
                   alt="Icon"
                   className="h-20 w-20 transition-all duration-300 group-hover:scale-110"
                 />
-                <h1 style={{color:"#283c6e"}} className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent group-hover:from-blue-700 group-hover:to-blue-900 transition-all duration-300">
+                <h1 style={{ color: "#283c6e" }} className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent group-hover:from-blue-700 group-hover:to-blue-900 transition-all duration-300">
                   Break Your Silence
                 </h1>
               </div>
             </div>
-            
+
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-6">
               <button
                 onClick={() => setActiveTab('home')}
-                className={`font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${
-                  activeTab === 'home' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
-                }`}
+                className={`font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${activeTab === 'home' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
+                  }`}
               >
                 Home
               </button>
               {isAuthenticated && (
                 <button
                   onClick={() => setActiveTab('dashboard')}
-                  className={`font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${
-                    activeTab === 'dashboard' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
-                  }`}
+                  className={`font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${activeTab === 'dashboard' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
+                    }`}
                 >
                   My Cases
                 </button>
@@ -190,37 +188,39 @@ export default React.memo(function Home() {
               {isAuthenticated && (user?.role === 'ADMIN' || user?.role === 'SUPERADMIN') && (
                 <button
                   onClick={() => setActiveTab('admin')}
-                  className={`font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${
-                    activeTab === 'admin' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
-                  }`}
+                  className={`font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${activeTab === 'admin' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
+                    }`}
                 >
                   Admin Panel
                 </button>
               )}
               <button
                 onClick={() => setActiveTab('public-cases')}
-                className={`font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${
-                  activeTab === 'public-cases' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
-                }`}
+                className={`font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${activeTab === 'public-cases' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
+                  }`}
               >
                 Public Cases
               </button>
               <button
                 onClick={() => setActiveTab('features')}
-                className={`font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${
-                  activeTab === 'features' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
-                }`}
+                className={`font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${activeTab === 'features' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
+                  }`}
               >
                 Features
               </button>
               <button
                 onClick={() => setActiveTab('about')}
-                className={`font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${
-                  activeTab === 'about' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
-                }`}
+                className={`font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${activeTab === 'about' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
+                  }`}
               >
                 About
               </button>
+              <Link
+                href="/digital-card/setup"
+                className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+              >
+                Digital Card
+              </Link>
               {isAuthenticated && user && (
                 <>
                   <div className="h-6 w-px bg-gray-300" />
@@ -270,9 +270,8 @@ export default React.memo(function Home() {
                     setActiveTab('home');
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${
-                    activeTab === 'home' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
-                  }`}
+                  className={`w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${activeTab === 'home' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
+                    }`}
                 >
                   Home
                 </button>
@@ -282,9 +281,8 @@ export default React.memo(function Home() {
                       setActiveTab('dashboard');
                       setIsMobileMenuOpen(false);
                     }}
-                    className={`w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${
-                      activeTab === 'dashboard' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
-                    }`}
+                    className={`w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${activeTab === 'dashboard' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
+                      }`}
                   >
                     My Cases
                   </button>
@@ -295,9 +293,8 @@ export default React.memo(function Home() {
                       setActiveTab('admin');
                       setIsMobileMenuOpen(false);
                     }}
-                    className={`w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${
-                      activeTab === 'admin' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
-                    }`}
+                    className={`w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${activeTab === 'admin' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
+                      }`}
                   >
                     Admin Panel
                   </button>
@@ -307,9 +304,8 @@ export default React.memo(function Home() {
                     setActiveTab('public-cases');
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${
-                    activeTab === 'public-cases' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
-                  }`}
+                  className={`w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${activeTab === 'public-cases' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
+                    }`}
                 >
                   Public Cases
                 </button>
@@ -318,9 +314,8 @@ export default React.memo(function Home() {
                     setActiveTab('features');
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${
-                    activeTab === 'features' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
-                  }`}
+                  className={`w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${activeTab === 'features' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
+                    }`}
                 >
                   Features
                 </button>
@@ -329,12 +324,18 @@ export default React.memo(function Home() {
                     setActiveTab('about');
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${
-                    activeTab === 'about' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
-                  }`}
+                  className={`w-full text-left font-medium transition-all duration-200 px-3 py-2 rounded-lg hover:bg-blue-50 ${activeTab === 'about' ? 'text-blue-600 bg-blue-50' : 'text-gray-600 hover:text-blue-600'
+                    }`}
                 >
                   About
                 </button>
+                <Link
+                  href="/digital-card/setup"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block w-full text-left bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  Digital Card
+                </Link>
                 {isAuthenticated && user && (
                   <div className="border-t border-gray-200 pt-2 mt-2">
                     <div className="text-left font-medium text-gray-500 mb-2 px-3">
@@ -376,30 +377,30 @@ export default React.memo(function Home() {
               <Shield className="h-4 w-4 mr-2" />
               Public Transparency Platform
             </Badge>
-            
+
             <h2 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
               Your Voice for
               <span className="bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
-                Better Society for All
+                Better Society
               </span>
             </h2>
-            
+
             <p className="text-xl text-gray-600 mb-8 leading-relaxed max-w-3xl mx-auto">
               Join thousands of voices fighting for their rights across education, banking, GST, income tax, corruption, and political issues. Report malpractices, track cases, and access transparent information for better decision-making.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-xl px-8 py-4 text-lg font-medium transition-all duration-300 hover:shadow-2xl hover:scale-105"
                 onClick={handleFileCase}
               >
                 <FileText className="h-5 w-5 mr-3" />
                 File a New Case
               </Button>
-              <Button 
-                variant="outline" 
-                size="lg" 
+              <Button
+                variant="outline"
+                size="lg"
                 onClick={() => setActiveTab('public-cases')}
                 className="hover:bg-blue-50 border-blue-200 text-blue-600 hover:text-blue-700 hover:border-blue-300 px-8 py-4 text-lg font-medium transition-all duration-300 hover:shadow-lg hover:scale-105"
               >
@@ -407,7 +408,7 @@ export default React.memo(function Home() {
                 Browse Public Cases
               </Button>
             </div>
-            
+
             {isAuthenticated && user && (
               <div className="bg-green-50 border border-green-200 rounded-xl p-6 mb-8">
                 <div className="flex items-center justify-center">
@@ -478,7 +479,7 @@ export default React.memo(function Home() {
             <h2 className="text-3xl font-bold text-gray-900 mb-2">My Cases</h2>
             <p className="text-gray-600">Track and manage your healthcare complaints</p>
           </div>
-          
+
           <div className="mb-6">
             <Button onClick={handleFileCase} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg px-6 py-3 font-medium transition-all duration-300 hover:shadow-xl hover:scale-105">
               <FileText className="h-4 w-4 mr-2" />
@@ -589,7 +590,7 @@ export default React.memo(function Home() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-600 leading-relaxed">
-                    To create a transparent healthcare ecosystem where patients can report issues, 
+                    To create a transparent healthcare ecosystem where patients can report issues,
                     track progress, and access verified information to make informed decisions about their care.
                   </p>
                 </CardContent>
@@ -638,8 +639,8 @@ export default React.memo(function Home() {
             Join thousands of patients fighting for better healthcare
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               variant="secondary"
               onClick={handleFileCase}
               className="bg-white text-blue-600 hover:bg-blue-50 border-2 border-white shadow-lg px-8 py-4 text-lg font-medium transition-all duration-300 hover:shadow-xl"
@@ -647,9 +648,9 @@ export default React.memo(function Home() {
               Get Started Now
               <ArrowRight className="h-5 w-5 ml-2" />
             </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
+            <Button
+              size="lg"
+              variant="outline"
               className="border-2 border-white bg-white/10 backdrop-blur-sm text-white hover:bg-white hover:text-blue-700 px-8 py-4 text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl"
             >
               Learn More
@@ -667,8 +668,8 @@ export default React.memo(function Home() {
               <span className="text-lg font-semibold text-gray-900">Break Your Silence</span>
             </div>
             <div className="text-sm text-gray-600 text-center md:text-right">
-              © 2024 Break Your Silence. All rights reserved. | 
-              <Link href="#" className="hover:text-blue-600 ml-1">Privacy Policy</Link> | 
+              © 2026 Break Your Silence. All rights reserved. |
+              <Link href="#" className="hover:text-blue-600 ml-1">Privacy Policy</Link> |
               <Link href="#" className="hover:text-blue-600 ml-1">Terms of Service</Link>
             </div>
           </div>
