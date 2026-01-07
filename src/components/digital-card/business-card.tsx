@@ -48,17 +48,18 @@ export function BusinessCard({
                 >
                     {/* Front */}
                     <div
-                        className="absolute inset-0"
-                        style={{ backfaceVisibility: 'hidden' }}
+                        className="absolute inset-0 bg-white rounded-xl overflow-hidden"
+                        style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
                     >
                         <CardFront profile={profile} />
                     </div>
 
                     {/* Back */}
                     <div
-                        className="absolute inset-0"
+                        className="absolute inset-0 bg-white rounded-xl overflow-hidden"
                         style={{
                             backfaceVisibility: 'hidden',
+                            WebkitBackfaceVisibility: 'hidden',
                             transform: 'rotateY(180deg)'
                         }}
                     >

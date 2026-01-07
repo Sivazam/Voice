@@ -23,7 +23,7 @@ interface DigitalCardStore {
 
     // Auth Actions
     setPhoneNumber: (phone: string) => void;
-    verifyOtp: (otp: string) => Promise<boolean>;
+    loginSuccess: (phone: string) => Promise<void>;
     logout: () => void;
 
     // Setup Actions
@@ -44,8 +44,6 @@ interface DigitalCardStore {
 const generateId = (): string => {
     return `dc_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 };
-
-
 
 export const useDigitalCardStore = create<DigitalCardStore>()(
     persist(
@@ -72,36 +70,29 @@ export const useDigitalCardStore = create<DigitalCardStore>()(
                 }));
             },
 
-            verifyOtp: async (otp) => {
-                // Mock OTP verification - accepts 123456
-                if (otp === '123456') {
-                    const { auth } = get();
-                    const phoneNumber = auth.phoneNumber;
-
-                    // Fetch profile from Firestore
-                    let profileUpdate = {};
-                    if (phoneNumber) {
-                        try {
-                            const remoteProfile = await DigitalCardService.getProfile(phoneNumber);
-                            if (remoteProfile) {
-                                profileUpdate = { profile: remoteProfile };
-                            }
-                        } catch (error) {
-                            console.error('Error fetching profile:', error);
+            loginSuccess: async (phoneNumber) => {
+                // Fetch profile from Firestore
+                let profileUpdate = {};
+                if (phoneNumber) {
+                    try {
+                        const remoteProfile = await DigitalCardService.getProfile(phoneNumber);
+                        if (remoteProfile) {
+                            profileUpdate = { profile: remoteProfile };
                         }
+                    } catch (error) {
+                        console.error('Error fetching profile:', error);
                     }
-
-                    set((state) => ({
-                        auth: {
-                            ...state.auth,
-                            isAuthenticated: true,
-                            otpVerified: true
-                        },
-                        ...profileUpdate
-                    }));
-                    return true;
                 }
-                return false;
+
+                set((state) => ({
+                    auth: {
+                        ...state.auth,
+                        phoneNumber,
+                        isAuthenticated: true,
+                        otpVerified: true
+                    },
+                    ...profileUpdate
+                }));
             },
 
             logout: () => {

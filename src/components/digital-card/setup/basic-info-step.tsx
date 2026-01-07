@@ -171,7 +171,7 @@ export function BasicInfoStep({ onNext }: BasicInfoStepProps) {
             </div>
 
             {/* Profile Image Upload */}
-            <div className="flex flex-col sm:flex-row gap-8 items-start justify-center">
+            <div className="flex flex-col sm:flex-row gap-8 items-center justify-center">
                 {/* Profile Image */}
                 <div className="flex flex-col items-center gap-3">
                     <div className="relative">
@@ -309,9 +309,17 @@ export function BasicInfoStep({ onNext }: BasicInfoStepProps) {
             <div className="pt-6">
                 <Button
                     onClick={handleSubmit}
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-6 text-lg font-semibold shadow-lg shadow-blue-500/25"
+                    disabled={isUploadingProfile || isUploadingLogo}
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-6 text-lg font-semibold shadow-lg shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    Continue
+                    {isUploadingProfile || isUploadingLogo ? (
+                        <span className="flex items-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Uploading...
+                        </span>
+                    ) : (
+                        'Continue'
+                    )}
                 </Button>
             </div>
         </motion.div>

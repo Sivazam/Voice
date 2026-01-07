@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CreditCard, ArrowLeft, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { useDigitalCardStore } from '@/store/digital-card-store';
+import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
+import { firebaseApp } from "@/lib/firestore";
 import { StepIndicator } from '@/components/digital-card/setup/step-indicator';
 import { BasicInfoStep } from '@/components/digital-card/setup/basic-info-step';
 import { ContactInfoStep } from '@/components/digital-card/setup/contact-info-step';
@@ -13,18 +15,38 @@ import { ProfessionalInfoStep } from '@/components/digital-card/setup/profession
 import { PreviewPublishStep } from '@/components/digital-card/setup/preview-publish-step';
 import { SetupStep } from '@/types/digital-card';
 
+declare global {
+    interface Window {
+        recaptchaVerifier: any;
+    }
+}
+
 // Auth Modal Component
 function AuthModal({
     onSuccess
 }: {
     onSuccess: () => void;
 }) {
-    const { auth, setPhoneNumber, verifyOtp } = useDigitalCardStore();
+    const { auth: storeAuth, setPhoneNumber, loginSuccess } = useDigitalCardStore();
     const [phone, setPhone] = useState('');
     const [otp, setOtp] = useState('');
     const [step, setStep] = useState<'phone' | 'otp'>('phone');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+
+    useEffect(() => {
+        const auth = getAuth(firebaseApp);
+        // Initialize RecaptchaVerifier
+        if (!window.recaptchaVerifier) {
+            window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                'size': 'invisible',
+                'callback': (response: any) => {
+                    // reCAPTCHA solved, allow signInWithPhoneNumber.
+                }
+            });
+        }
+    }, []);
 
     const handleSendOtp = async () => {
         if (!phone || phone.length < 10) {
@@ -35,12 +57,28 @@ function AuthModal({
         setLoading(true);
         setError('');
 
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500));
+        try {
+            const auth = getAuth(firebaseApp);
+            // Format phone number to E.164 format (assuming India for now, but should be dynamic)
+            const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
 
-        setPhoneNumber(phone);
-        setStep('otp');
-        setLoading(false);
+            const appVerifier = window.recaptchaVerifier;
+            const confirmation = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
+
+            setConfirmationResult(confirmation);
+            setPhoneNumber(formattedPhone);
+            setStep('otp');
+        } catch (err: any) {
+            console.error("Error sending OTP:", err);
+            setError(err.message || 'Failed to send OTP. Please try again.');
+            // Reset recaptcha
+            if (window.recaptchaVerifier) {
+                window.recaptchaVerifier.clear();
+                window.recaptchaVerifier = undefined;
+            }
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleVerifyOtp = async () => {
@@ -52,14 +90,21 @@ function AuthModal({
         setLoading(true);
         setError('');
 
-        const isValid = await verifyOtp(otp);
-        if (isValid) {
-            onSuccess();
-        } else {
-            setError('Invalid OTP. Please use 123456');
+        try {
+            if (confirmationResult) {
+                await confirmationResult.confirm(otp);
+                // Auth successful, update store
+                await loginSuccess(phone.startsWith('+') ? phone : `+91${phone}`);
+                onSuccess();
+            } else {
+                setError('Session expired. Please request OTP again.');
+            }
+        } catch (err: any) {
+            console.error("Error verifying OTP:", err);
+            setError('Invalid OTP. Please try again.');
+        } finally {
+            setLoading(false);
         }
-
-        setLoading(false);
     };
 
     return (
@@ -119,8 +164,9 @@ function AuthModal({
                             </button>
 
                             <p className="text-center text-sm text-gray-500">
-                                Demo: Use any phone number. OTP is <strong>123456</strong>
+                                We will send you a One Time Password to your mobile number
                             </p>
+                            <div id="recaptcha-container"></div>
                         </motion.div>
                     ) : (
                         <motion.div
@@ -145,7 +191,7 @@ function AuthModal({
 
                             <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
                                 <p className="text-sm text-blue-700 text-center">
-                                    Demo OTP: <strong className="font-mono">123456</strong>
+                                    Please enter the OTP sent to your mobile
                                 </p>
                             </div>
 
@@ -227,9 +273,9 @@ export default function DigitalCardSetupPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+        <div className="h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col overflow-hidden">
             {/* Header */}
-            <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
+            <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 shrink-0 z-50">
                 <div className="container mx-auto px-4 py-4">
                     <div className="flex items-center justify-between">
                         <Link href="/" className="flex items-center gap-2">
@@ -250,16 +296,18 @@ export default function DigitalCardSetupPage() {
             </header>
 
             {/* Progress Indicator */}
-            <StepIndicator
-                currentStep={currentStep}
-                onStepClick={(step) => {
-                    if (step < currentStep) setCurrentStep(step);
-                }}
-            />
+            <div className="shrink-0">
+                <StepIndicator
+                    currentStep={currentStep}
+                    onStepClick={(step) => {
+                        if (step < currentStep) setCurrentStep(step);
+                    }}
+                />
+            </div>
 
             {/* Step Content */}
-            <main className="container mx-auto px-4 py-8">
-                <div className="max-w-lg mx-auto">
+            <main className="flex-1 overflow-y-auto container mx-auto px-4 py-8">
+                <div className="max-w-lg mx-auto pb-8">
                     <AnimatePresence mode="wait">
                         {renderStep()}
                     </AnimatePresence>

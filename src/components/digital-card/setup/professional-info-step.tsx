@@ -293,9 +293,17 @@ export function ProfessionalInfoStep({ onNext, onBack }: ProfessionalInfoStepPro
                 </Button>
                 <Button
                     onClick={handleSubmit}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-6 text-lg font-semibold shadow-lg shadow-blue-500/25"
+                    disabled={isUploadingGallery}
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-6 text-lg font-semibold shadow-lg shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    Continue
+                    {isUploadingGallery ? (
+                        <span className="flex items-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Uploading...
+                        </span>
+                    ) : (
+                        'Continue'
+                    )}
                 </Button>
             </div>
         </motion.div>

@@ -1,5 +1,5 @@
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp, query, collection, where, getDocs } from "firebase/firestore";
 import { firebaseStorage, firestore } from "./firestore";
 import { DigitalCardProfile } from "@/types/digital-card";
 
@@ -86,6 +86,24 @@ export class DigitalCardService {
             }
         } catch (error) {
             console.error('Error getting profile:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get a digital card profile by its unique ID (for public view)
+     */
+    static async getProfileById(id: string): Promise<DigitalCardProfile | null> {
+        try {
+            const q = query(collection(firestore, 'digital_cards'), where('id', '==', id));
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                return querySnapshot.docs[0].data() as DigitalCardProfile;
+            }
+            return null;
+        } catch (error) {
+            console.error('Error fetching profile by ID:', error);
             throw error;
         }
     }

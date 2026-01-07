@@ -33,6 +33,7 @@ import {
 import Link from 'next/link';
 import { useDigitalCardStore } from '@/store/digital-card-store';
 import { DigitalCardProfile } from '@/types/digital-card';
+import { DigitalCardService } from '@/lib/digital-card-service';
 import { CardFront } from '@/components/digital-card/card-front';
 import { CardBack } from '@/components/digital-card/card-back';
 import { downloadVCard, getPublicProfileUrl } from '@/lib/vcard-utils';
@@ -423,12 +424,29 @@ export default function DigitalCardProfilePage() {
     useEffect(() => {
         const id = params.id as string;
         if (id) {
-            setTimeout(() => {
+            const fetchProfile = async () => {
+                // First check local store (for preview)
                 let found = getProfileById(id);
                 if (!found && currentProfile.id === id) found = currentProfile as DigitalCardProfile;
-                setProfile(found || null);
-                setIsLoading(false);
-            }, 100);
+
+                if (found) {
+                    setProfile(found);
+                    setIsLoading(false);
+                } else {
+                    // If not found locally, fetch from Firestore (for public view)
+                    try {
+                        const remoteProfile = await DigitalCardService.getProfileById(id);
+                        if (remoteProfile) {
+                            setProfile(remoteProfile);
+                        }
+                    } catch (error) {
+                        console.error('Error fetching profile:', error);
+                    } finally {
+                        setIsLoading(false);
+                    }
+                }
+            };
+            fetchProfile();
         }
     }, [params.id, getProfileById, currentProfile]);
 
