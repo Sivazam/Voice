@@ -423,44 +423,42 @@ export default function DigitalCardProfilePage() {
 
     useEffect(() => {
         const id = params.id as string;
-        if (id) {
-            const fetchProfile = async () => {
-                // First check local store (for preview)
-                let found = getProfileById(id);
+        if (!id) return;
 
-                // Fallback to current profile if ID matches (for drafts/previews)
-                if (!found && currentProfile.id === id) {
-                    found = currentProfile as DigitalCardProfile;
-                }
+        const fetchProfile = async () => {
+            // ALWAYS try Firestore first for public profiles
+            try {
+                console.log('Fetching profile from Firestore for ID:', id);
+                const remoteProfile = await DigitalCardService.getProfileById(id);
 
-                // Validate found profile - if it's empty or missing name, treat as not found
-                const isValidLocal = found && found.name && found.name.trim().length > 0;
-
-                if (isValidLocal) {
-                    console.log('Found valid local profile:', found);
-                    setProfile(found as DigitalCardProfile);
+                if (remoteProfile) {
+                    console.log('Found profile in Firestore:', remoteProfile.name);
+                    setProfile(remoteProfile);
                     setIsLoading(false);
-                } else {
-                    // If not found locally or invalid, fetch from Firestore (for public view)
-                    try {
-                        console.log('Fetching profile from Firestore for ID:', id);
-                        const remoteProfile = await DigitalCardService.getProfileById(id);
-                        console.log('Remote profile result:', remoteProfile);
-
-                        if (remoteProfile) {
-                            setProfile(remoteProfile);
-                        } else {
-                            console.warn('No profile found in Firestore for ID:', id);
-                        }
-                    } catch (error) {
-                        console.error('Error fetching profile:', error);
-                    } finally {
-                        setIsLoading(false);
-                    }
+                    return; // Success - exit early
                 }
-            };
-            fetchProfile();
-        }
+            } catch (error) {
+                console.error('Error fetching from Firestore:', error);
+            }
+
+            // Fallback to local state ONLY if Firestore fails (for owner preview/drafts)
+            console.log('Firestore fetch failed or empty, checking local state...');
+            let found = getProfileById(id);
+            if (!found && currentProfile.id === id) {
+                found = currentProfile as DigitalCardProfile;
+            }
+
+            if (found && found.name && found.name.trim().length > 0) {
+                console.log('Using local profile:', found.name);
+                setProfile(found as DigitalCardProfile);
+            } else {
+                console.warn('No profile found anywhere for ID:', id);
+            }
+
+            setIsLoading(false);
+        };
+
+        fetchProfile();
     }, [params.id, getProfileById, currentProfile]);
 
     const download = useCallback(async (ref: React.RefObject<HTMLDivElement | null>, name: string, type: string) => {
@@ -564,8 +562,8 @@ export default function DigitalCardProfilePage() {
                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="flex justify-center mb-5">
                     <div style={{ perspective: 1200 }}>
                         <motion.div className="relative w-[320px] h-[184px]" style={{ transformStyle: 'preserve-3d' }} animate={{ rotateY: isFlipped ? 180 : 0 }} transition={{ duration: 0.7, type: 'spring', stiffness: 70 }}>
-                            <div className="absolute inset-0 bg-white rounded-xl overflow-hidden" style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', zIndex: isFlipped ? 0 : 1 }}><CardFront profile={profile} /></div>
-                            <div className="absolute inset-0 bg-white rounded-xl overflow-hidden" style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)', zIndex: isFlipped ? 1 : 0 }}><CardBack profileUrl={url} /></div>
+                            <div className="absolute inset-0 bg-white rounded-xl overflow-hidden" style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', zIndex: isFlipped ? 0 : 2, visibility: isFlipped ? 'hidden' : 'visible' }}><CardFront profile={profile} /></div>
+                            <div className="absolute inset-0 bg-white rounded-xl overflow-hidden" style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)', zIndex: isFlipped ? 2 : 0, visibility: isFlipped ? 'visible' : 'hidden' }}><CardBack profileUrl={url} /></div>
                         </motion.div>
                     </div>
                 </motion.div>

@@ -52,7 +52,8 @@ export function BusinessCard({
                         style={{
                             backfaceVisibility: 'hidden',
                             WebkitBackfaceVisibility: 'hidden',
-                            zIndex: isFlipped ? 0 : 1
+                            zIndex: isFlipped ? 0 : 2,
+                            visibility: isFlipped ? 'hidden' : 'visible'
                         }}
                     >
                         <CardFront profile={profile} />
@@ -65,7 +66,8 @@ export function BusinessCard({
                             backfaceVisibility: 'hidden',
                             WebkitBackfaceVisibility: 'hidden',
                             transform: 'rotateY(180deg)',
-                            zIndex: isFlipped ? 1 : 0
+                            zIndex: isFlipped ? 2 : 0,
+                            visibility: isFlipped ? 'visible' : 'hidden'
                         }}
                     >
                         <CardBack profileUrl={profileUrl} />
