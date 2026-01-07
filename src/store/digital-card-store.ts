@@ -72,26 +72,39 @@ export const useDigitalCardStore = create<DigitalCardStore>()(
 
             loginSuccess: async (phoneNumber) => {
                 // Fetch profile from Firestore
-                let profileUpdate = {};
-                if (phoneNumber) {
+                let profileUpdate: any = {};
+                let stepUpdate: any = {};
+
+                // Normalize phone number to 10 digits (remove +91 or any prefix)
+                const normalizedPhone = phoneNumber.replace(/^\+?91/, '').replace(/\D/g, '');
+                console.log('loginSuccess: Original phone:', phoneNumber, 'Normalized:', normalizedPhone);
+
+                if (normalizedPhone) {
                     try {
-                        const remoteProfile = await DigitalCardService.getProfile(phoneNumber);
+                        const remoteProfile = await DigitalCardService.getProfile(normalizedPhone);
+                        console.log('loginSuccess: Remote profile result:', remoteProfile ? `Found - ${remoteProfile.name}` : 'Not found');
+
                         if (remoteProfile) {
                             profileUpdate = { profile: remoteProfile };
+                            // If profile has a name, go to preview step
+                            if (remoteProfile.name && remoteProfile.name.trim().length > 0) {
+                                stepUpdate = { currentStep: 5 };
+                            }
                         }
                     } catch (error) {
-                        console.error('Error fetching profile:', error);
+                        console.error('loginSuccess: Error fetching profile:', error);
                     }
                 }
 
                 set((state) => ({
                     auth: {
                         ...state.auth,
-                        phoneNumber,
+                        phoneNumber: normalizedPhone, // Store normalized 10-digit number
                         isAuthenticated: true,
                         otpVerified: true
                     },
-                    ...profileUpdate
+                    ...profileUpdate,
+                    ...stepUpdate
                 }));
             },
 

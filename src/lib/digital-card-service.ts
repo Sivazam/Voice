@@ -76,12 +76,16 @@ export class DigitalCardService {
      */
     static async getProfile(userId: string): Promise<DigitalCardProfile | null> {
         try {
+            console.log('DigitalCardService.getProfile: Looking up user:', userId);
             const userRef = doc(firestore, 'digital_cards', userId);
             const docSnap = await getDoc(userRef);
 
             if (docSnap.exists()) {
-                return docSnap.data() as DigitalCardProfile;
+                const data = docSnap.data() as DigitalCardProfile;
+                console.log('DigitalCardService.getProfile: Found profile:', data.name);
+                return data;
             } else {
+                console.log('DigitalCardService.getProfile: No document found');
                 return null;
             }
         } catch (error) {
