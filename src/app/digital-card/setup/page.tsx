@@ -91,37 +91,15 @@ function AuthModal({
         setLoading(true);
         setError('');
 
-        try {
-            const auth = getAuth(firebaseApp);
+        // Mock OTP Send
+        setTimeout(() => {
             const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
-
-            console.log('Attempting to sign in with phone:', formattedPhone);
-            console.log('Current Hostname:', window.location.hostname);
-
-            const appVerifier = window.recaptchaVerifier;
-            if (!appVerifier) {
-                throw new Error('RecaptchaVerifier not initialized');
-            }
-
-            const confirmation = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
-
-            setConfirmationResult(confirmation);
+            console.log('Mock OTP sent to:', formattedPhone);
+            setConfirmationResult({ verificationId: 'mock-id' } as any);
             setPhoneNumber(formattedPhone);
             setStep('otp');
-        } catch (err: any) {
-            console.error("Error sending OTP:", err);
-            console.error("Error Code:", err.code);
-            console.error("Error Message:", err.message);
-            console.error("Full Error Object:", JSON.stringify(err, null, 2));
-
-            setError(err.message || 'Failed to send OTP. Please try again.');
-            if (window.recaptchaVerifier) {
-                window.recaptchaVerifier.clear();
-                window.recaptchaVerifier = undefined;
-            }
-        } finally {
             setLoading(false);
-        }
+        }, 1000);
     };
 
     const handleVerifyOtp = async () => {
@@ -133,21 +111,17 @@ function AuthModal({
         setLoading(true);
         setError('');
 
-        try {
-            if (confirmationResult) {
-                await confirmationResult.confirm(otp);
-                // Auth successful, update store
-                await loginSuccess(phone.startsWith('+') ? phone : `+91${phone}`);
+        // Mock OTP Verify
+        setTimeout(async () => {
+            if (otp === '123456' || otp.length === 6) {
+                const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+                await loginSuccess(formattedPhone);
                 onSuccess();
             } else {
-                setError('Session expired. Please request OTP again.');
+                setError('Invalid OTP. Please use 123456');
             }
-        } catch (err: any) {
-            console.error("Error verifying OTP:", err);
-            setError('Invalid OTP. Please try again.');
-        } finally {
             setLoading(false);
-        }
+        }, 1000);
     };
 
     return (
@@ -170,11 +144,13 @@ function AuthModal({
                     </p>
                 </div>
 
-                {error && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                        {error}
-                    </div>
-                )}
+                {
+                    error && (
+                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                            {error}
+                        </div>
+                    )
+                }
 
                 <AnimatePresence mode="wait">
                     {step === 'phone' ? (
@@ -271,8 +247,8 @@ function AuthModal({
                         Back to Home
                     </Link>
                 </div>
-            </motion.div>
-        </div>
+            </motion.div >
+        </div >
     );
 }
 

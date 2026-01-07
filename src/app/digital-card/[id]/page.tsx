@@ -438,7 +438,7 @@ export default function DigitalCardProfilePage() {
 
                 if (isValidLocal) {
                     console.log('Found valid local profile:', found);
-                    setProfile(found);
+                    setProfile(found as DigitalCardProfile);
                     setIsLoading(false);
                 } else {
                     // If not found locally or invalid, fetch from Firestore (for public view)
@@ -556,7 +556,7 @@ export default function DigitalCardProfilePage() {
                             <img src={profile.profileImage} alt={profile.name} className="w-full h-full object-cover" />
                         </div>
                     )}
-                    <h1 className="text-2xl font-bold text-white mb-1">{profile.name}</h1>
+                    <h1 className="text-2xl font-bold text-white mb-1 capitalize">{profile.name}</h1>
                     <p className="text-blue-300 font-medium">{profile.designation}</p>
                 </motion.div>
 

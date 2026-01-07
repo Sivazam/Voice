@@ -95,7 +95,7 @@ export function CardFront({ profile, isPrintMode = false, crossOrigin }: CardFro
                     )}
 
                     <div className="flex-1 min-w-0 pt-1">
-                        <h2 className={`font-bold text-white leading-tight ${isPrintMode ? 'text-5xl mb-2' : 'text-lg'}`}>
+                        <h2 className={`font-bold text-white leading-tight capitalize ${isPrintMode ? 'text-5xl mb-2' : 'text-lg'}`}>
                             {profile.name}
                         </h2>
                         <p className={`text-blue-300 font-medium ${isPrintMode ? 'text-3xl' : 'text-xs'}`}>
