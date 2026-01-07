@@ -26,7 +26,7 @@ function AuthModal({
     onSuccess
 }: {
     onSuccess: () => void;
-}): JSX.Element {
+) {
     const { auth: storeAuth, setPhoneNumber, loginSuccess } = useDigitalCardStore();
     const [phone, setPhone] = useState('');
     const [otp, setOtp] = useState('');
