@@ -1,6 +1,8 @@
 // Digital Business Card Types
 // Fully isolated from existing types
 
+import { ThemeName } from '@/lib/themes';
+
 export interface SocialLinks {
   instagram?: string;
   linkedin?: string;
@@ -49,6 +51,7 @@ export interface DigitalCardProfile {
   createdAt: string;
   updatedAt: string;
   isPublished: boolean;
+  theme?: ThemeName;
 }
 
 export interface Testimonial {
@@ -98,4 +101,5 @@ export const createEmptyProfile = (): Partial<DigitalCardProfile> => ({
   gallery: [],
   testimonials: [],
   isPublished: false,
+  theme: 'classic',
 });

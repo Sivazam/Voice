@@ -7,9 +7,17 @@ interface QRCodeDisplayProps {
     url: string;
     size?: number;
     className?: string;
+    fgColor?: string;
+    bgColor?: string;
 }
 
-export function QRCodeDisplay({ url, size = 200, className = '' }: QRCodeDisplayProps) {
+export function QRCodeDisplay({
+    url,
+    size = 200,
+    className = '',
+    fgColor = '#1e293b',
+    bgColor = '#ffffff'
+}: QRCodeDisplayProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [error, setError] = useState<string | null>(null);
 
@@ -19,10 +27,10 @@ export function QRCodeDisplay({ url, size = 200, className = '' }: QRCodeDisplay
                 width: size,
                 margin: 2,
                 color: {
-                    dark: '#1e293b', // Slate-800
-                    light: '#ffffff',
+                    dark: fgColor,
+                    light: bgColor,
                 },
-                errorCorrectionLevel: 'H', // High error correction for print reliability
+                errorCorrectionLevel: 'H',
             })
                 .then(() => setError(null))
                 .catch((err) => {
@@ -30,7 +38,7 @@ export function QRCodeDisplay({ url, size = 200, className = '' }: QRCodeDisplay
                     setError('Failed to generate QR code');
                 });
         }
-    }, [url, size]);
+    }, [url, size, fgColor, bgColor]);
 
     if (!url) {
         return (

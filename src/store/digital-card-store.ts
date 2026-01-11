@@ -9,6 +9,7 @@ import {
     createEmptyProfile
 } from '@/types/digital-card';
 import { DigitalCardService } from '@/lib/digital-card-service';
+import { ThemeName } from '@/lib/themes';
 
 interface DigitalCardStore {
     // Auth State
@@ -33,6 +34,7 @@ interface DigitalCardStore {
 
     // Profile Actions
     updateProfile: (data: Partial<DigitalCardProfile>) => void;
+    updateTheme: (theme: ThemeName) => Promise<void>;
     resetProfile: () => void;
     publishProfile: () => string; // Returns the profile ID
 
@@ -163,6 +165,33 @@ export const useDigitalCardStore = create<DigitalCardStore>()(
                     currentStep: 1,
                     profile: createEmptyProfile(),
                 });
+            },
+
+            updateTheme: async (theme) => {
+                const { profile, auth } = get();
+
+                // Update local state
+                set((state) => ({
+                    profile: {
+                        ...state.profile,
+                        theme,
+                        updatedAt: new Date().toISOString(),
+                    }
+                }));
+
+                // Save to Firestore
+                if (auth.phoneNumber) {
+                    try {
+                        await DigitalCardService.saveProfile(auth.phoneNumber, {
+                            ...profile,
+                            theme,
+                            updatedAt: new Date().toISOString(),
+                        });
+                        console.log('Theme saved to Firestore:', theme);
+                    } catch (error) {
+                        console.error('Error saving theme:', error);
+                    }
+                }
             },
 
             publishProfile: () => {

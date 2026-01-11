@@ -36,6 +36,7 @@ import { DigitalCardProfile } from '@/types/digital-card';
 import { DigitalCardService } from '@/lib/digital-card-service';
 import { CardFront } from '@/components/digital-card/card-front';
 import { CardBack } from '@/components/digital-card/card-back';
+import { ThemeSelector } from '@/components/digital-card/theme-selector';
 import { downloadVCard, getPublicProfileUrl } from '@/lib/vcard-utils';
 import { Button } from '@/components/ui/button';
 import { toPng } from 'html-to-image';
@@ -45,6 +46,7 @@ import { Input } from '@/components/ui/input';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { firebaseStorage } from '@/lib/firestore';
 import { Camera } from 'lucide-react';
+import { ThemeName, defaultTheme } from '@/lib/themes';
 
 // Modal Component
 function Modal({ isOpen, onClose, title, children }: { isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
@@ -412,7 +414,7 @@ function TestimonialsContent({ profile }: { profile: DigitalCardProfile }) {
 // Main Page
 export default function DigitalCardProfilePage() {
     const params = useParams();
-    const { getProfileById, profile: currentProfile } = useDigitalCardStore();
+    const { getProfileById, profile: currentProfile, updateTheme, auth } = useDigitalCardStore();
     const [profile, setProfile] = useState<DigitalCardProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isFlipped, setIsFlipped] = useState(false);
@@ -421,28 +423,45 @@ export default function DigitalCardProfilePage() {
     const frontRef = useRef<HTMLDivElement>(null);
     const backRef = useRef<HTMLDivElement>(null);
 
+    // Check if current user is the owner (by matching phone number or profile ID)
+    const isOwner = profile && (
+        (auth.phoneNumber && profile.mobile?.includes(auth.phoneNumber)) ||
+        currentProfile.id === profile.id
+    );
+
+    // Track if we've already fetched to prevent re-fetching
+    const fetchedRef = useRef(false);
+
     useEffect(() => {
         const id = params.id as string;
         if (!id) return;
 
+        // Synchronous guard - check immediately before any async work
+        if (fetchedRef.current) {
+            console.log('Already fetched, skipping. Current profile theme:', profile?.theme);
+            return;
+        }
+
+        // Mark as fetched IMMEDIATELY (synchronously) to prevent duplicate calls
+        fetchedRef.current = true;
+
         const fetchProfile = async () => {
-            // ALWAYS try Firestore first for public profiles
             try {
                 console.log('Fetching profile from Firestore for ID:', id);
                 const remoteProfile = await DigitalCardService.getProfileById(id);
 
                 if (remoteProfile) {
-                    console.log('Found profile in Firestore:', remoteProfile.name);
+                    console.log('Found profile in Firestore:', remoteProfile.name, 'Theme:', remoteProfile.theme);
                     setProfile(remoteProfile);
                     setIsLoading(false);
-                    return; // Success - exit early
+                    return;
                 }
             } catch (error) {
                 console.error('Error fetching from Firestore:', error);
             }
 
-            // Fallback to local state ONLY if Firestore fails (for owner preview/drafts)
-            console.log('Firestore fetch failed or empty, checking local state...');
+            // Fallback to local state
+            console.log('Checking local state...');
             let found = getProfileById(id);
             if (!found && currentProfile.id === id) {
                 found = currentProfile as DigitalCardProfile;
@@ -451,15 +470,14 @@ export default function DigitalCardProfilePage() {
             if (found && found.name && found.name.trim().length > 0) {
                 console.log('Using local profile:', found.name);
                 setProfile(found as DigitalCardProfile);
-            } else {
-                console.warn('No profile found anywhere for ID:', id);
             }
 
             setIsLoading(false);
         };
 
         fetchProfile();
-    }, [params.id, getProfileById, currentProfile]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [params.id]);
 
     const download = useCallback(async (ref: React.RefObject<HTMLDivElement | null>, name: string, type: string) => {
         if (!ref.current) return;
@@ -520,6 +538,7 @@ export default function DigitalCardProfilePage() {
     );
 
     const url = getPublicProfileUrl(profile.id);
+    console.log('QR Code URL:', url, 'Profile ID:', profile.id);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950">
@@ -533,7 +552,7 @@ export default function DigitalCardProfilePage() {
                         <span className="font-bold text-white text-sm">Digital Card</span>
                     </Link>
                     <div className="flex items-center gap-2">
-                        {currentProfile.id === profile?.id && (
+                        {isOwner && (
                             <Link href="/digital-card/setup">
                                 <button className="p-2.5 hover:bg-white/10 rounded-xl transition-colors text-white/80 hover:text-white">
                                     <Edit className="w-5 h-5" />
@@ -563,18 +582,46 @@ export default function DigitalCardProfilePage() {
                     <div style={{ perspective: 1200 }}>
                         <motion.div className="relative w-[320px] h-[184px]" style={{ transformStyle: 'preserve-3d' }} animate={{ rotateY: isFlipped ? 180 : 0 }} transition={{ duration: 0.7, type: 'spring', stiffness: 70 }}>
                             <div className="absolute inset-0 bg-white rounded-xl overflow-hidden" style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', zIndex: isFlipped ? 0 : 2, visibility: isFlipped ? 'hidden' : 'visible' }}><CardFront profile={profile} /></div>
-                            <div className="absolute inset-0 bg-white rounded-xl overflow-hidden" style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)', zIndex: isFlipped ? 2 : 0, visibility: isFlipped ? 'visible' : 'hidden' }}><CardBack profileUrl={url} /></div>
+                            <div className="absolute inset-0 bg-white rounded-xl overflow-hidden" style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)', zIndex: isFlipped ? 2 : 0, visibility: isFlipped ? 'visible' : 'hidden' }}><CardBack profileUrl={url} theme={(profile.theme || defaultTheme) as ThemeName} /></div>
                         </motion.div>
                     </div>
                 </motion.div>
 
                 {/* Flip */}
-                <div className="flex justify-center mb-8">
+                <div className="flex justify-center mb-4">
                     <button onClick={() => setIsFlipped(!isFlipped)} className="flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/15 backdrop-blur rounded-full text-white text-sm font-medium border border-white/10 transition-colors">
                         <RotateCw className={`w-4 h-4 transition-transform duration-500 ${isFlipped ? 'rotate-180' : ''}`} />
                         {isFlipped ? 'View Front' : 'View QR'}
                     </button>
                 </div>
+
+                {/* Theme Selector - Only for Owner */}
+                {isOwner && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="mb-8"
+                    >
+                        <ThemeSelector
+                            currentTheme={(profile.theme || defaultTheme) as ThemeName}
+                            onThemeChange={async (theme) => {
+                                console.log('Theme change requested:', theme);
+                                console.log('Current profile theme:', profile.theme);
+                                // Update local state immediately for instant feedback
+                                setProfile({ ...profile, theme });
+                                console.log('Local state updated to:', theme);
+                                // Save to store and Firestore
+                                try {
+                                    await updateTheme(theme);
+                                    console.log('Store updateTheme completed');
+                                } catch (error) {
+                                    console.error('Error in updateTheme:', error);
+                                }
+                            }}
+                        />
+                    </motion.div>
+                )}
 
                 {/* Actions - 3x3 Grid */}
                 <motion.section
@@ -612,7 +659,7 @@ export default function DigitalCardProfilePage() {
                 </motion.section>
 
                 {/* Downloads - Only for Owner */}
-                {currentProfile.id === profile.id && (
+                {isOwner && (
                     <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
                         <h3 className="text-center text-xs font-bold text-white/50 mb-4 uppercase tracking-widest">Download Cards</h3>
                         <div className="grid grid-cols-2 gap-3">
@@ -660,7 +707,7 @@ export default function DigitalCardProfilePage() {
                     />
                 </div>
                 <div ref={backRef}>
-                    <CardBack profileUrl={url} isPrintMode />
+                    <CardBack profileUrl={url} isPrintMode theme={(profile.theme || defaultTheme) as ThemeName} />
                 </div>
             </div>
 

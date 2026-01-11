@@ -62,7 +62,7 @@ export function ProfessionalInfoStep({ onNext, onBack }: ProfessionalInfoStepPro
     const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (files) {
-            const remainingSlots = 6 - gallery.length;
+            const remainingSlots = 20 - gallery.length;
             const filesToUpload = Array.from(files).slice(0, remainingSlots);
 
             if (filesToUpload.length === 0) return;
@@ -81,8 +81,8 @@ export function ProfessionalInfoStep({ onNext, onBack }: ProfessionalInfoStepPro
                 const validUrls = uploadedUrls.filter((url): url is string => url !== null);
 
                 setGallery((prev) => {
-                    if (prev.length >= 6) return prev;
-                    return [...prev, ...validUrls].slice(0, 6);
+                    if (prev.length >= 20) return prev;
+                    return [...prev, ...validUrls].slice(0, 20);
                 });
             } catch (error) {
                 console.error('Gallery upload failed:', error);
@@ -223,7 +223,7 @@ export function ProfessionalInfoStep({ onNext, onBack }: ProfessionalInfoStepPro
                 <Label className="flex items-center gap-2">
                     <Image className="w-4 h-4 text-gray-400" />
                     Gallery
-                    <span className="text-xs text-gray-400">(Optional, max 6 images, 5MB each)</span>
+                    <span className="text-xs text-gray-400">(Optional, max 20 images, 5MB each)</span>
                 </Label>
 
                 <input
@@ -262,7 +262,7 @@ export function ProfessionalInfoStep({ onNext, onBack }: ProfessionalInfoStepPro
                     </AnimatePresence>
 
                     {/* Add Image Button */}
-                    {gallery.length < 6 && (
+                    {gallery.length < 20 && (
                         <motion.button
                             type="button"
                             onClick={() => galleryInputRef.current?.click()}
